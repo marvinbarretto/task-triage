@@ -1,0 +1,19 @@
+{
+  "name": "@fourfold/angular-foundation",
+  "version": "0.1.0",
+  "description": "Shared Angular utilities for rapid app development",
+  "author": {
+    "name": "Fourfold Media"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@angular/common": "^20.1.0",
+    "@angular/core": "^20.1.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

@@ -6,7 +6,11 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "lib:test": "ng test angular-foundation",
+    "lib:build": "ng build angular-foundation",
+    "lib:release": "npm run lib:build && cd projects/angular-foundation && standard-version",
+    "lib:publish": "npm run lib:release && cd dist/angular-foundation && npm publish"
   },
   "prettier": {
     "overrides": [
@@ -20,9 +24,11 @@
   },
   "private": true,
   "dependencies": {
+    "@angular/cdk": "20.1.2",
     "@angular/common": "^20.1.0",
     "@angular/compiler": "^20.1.0",
     "@angular/core": "^20.1.0",
+    "@angular/fire": "20.0.1",
     "@angular/forms": "^20.1.0",
     "@angular/platform-browser": "^20.1.0",
     "@angular/router": "^20.1.0",
@@ -41,6 +47,8 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "ng-packagr": "^20.1.0",
+    "standard-version": "9.5.0",
     "typescript": "~5.8.2"
   }
 }

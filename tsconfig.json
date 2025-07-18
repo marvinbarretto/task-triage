@@ -3,6 +3,11 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "paths": {
+      "angular-foundation": [
+        "./dist/angular-foundation"
+      ]
+    },
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
@@ -29,6 +34,12 @@
     },
     {
       "path": "./tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/angular-foundation/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/angular-foundation/tsconfig.spec.json"
     }
   ]
 }

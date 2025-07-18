@@ -93,6 +93,39 @@
           }
         }
       }
+    },
+    "angular-foundation": {
+      "projectType": "library",
+      "root": "projects/angular-foundation",
+      "sourceRoot": "projects/angular-foundation/src",
+      "prefix": "ff",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/angular-foundation/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/angular-foundation/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "projects/angular-foundation/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
+          }
+        }
+      }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }
