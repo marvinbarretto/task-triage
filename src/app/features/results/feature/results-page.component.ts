@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { TriageSessionStore } from '@shared/data-access/stores/triage-session.store';
+import { ScoringService } from '@shared/data-access/services/scoring.service';
 
 @Component({
   selector: 'app-results-page',
@@ -25,13 +27,13 @@ import { RouterModule } from '@angular/router';
         </div>
         
         <ul class="task-list">
-          @for (task of sortedTasks; track task.id; let i = $index) {
+          @for (task of tasksWithContent; track task.taskId; let i = $index) {
             <li class="task-item">
               <div class="task-rank">{{i + 1}}</div>
               <div class="task-content">
                 <h3>{{task.content}}</h3>
                 <div class="task-score">
-                  <span class="score-value">Score: {{task.score}}</span>
+                  <span class="score-value">Score: {{task.weightedScore}}</span>
                   <span class="score-reasoning">{{task.reasoning}}</span>
                 </div>
               </div>
@@ -181,29 +183,37 @@ import { RouterModule } from '@angular/router';
   `]
 })
 export class ResultsPageComponent {
-  completedCategories = 4; // TODO: Get from store
+  private sessionStore = inject(TriageSessionStore);
+  private scoringService = inject(ScoringService);
   
-  // TODO: Get from store
-  sortedTasks = [
-    {
-      id: '1',
-      content: 'Finish quarterly report',
-      score: 8.5,
-      reasoning: 'High impact + urgent timing = top priority'
-    },
-    {
-      id: '2',
-      content: 'Call dentist about appointment',
-      score: 7.2,
-      reasoning: 'Time sensitive + quick task'
-    },
-    {
-      id: '3',
-      content: 'Review team feedback',
-      score: 6.8,
-      reasoning: 'Medium impact + moderate effort'
-    }
-  ];
+  // Get data from stores
+  session = this.sessionStore.session;
+  sortedTasks = this.sessionStore.sortedTasks;
+  scores = this.sessionStore.scores;
+  categoryProgress = this.sessionStore.categoryProgress;
+  
+  get completedCategories() {
+    return this.categoryProgress().completedCount;
+  }
+  
+  get tasksWithContent() {
+    const session = this.session();
+    const sorted = this.sortedTasks();
+    
+    if (!session) return [];
+    
+    return sorted.map(taskScore => {
+      const task = session.tasks.find(t => t.id === taskScore.taskId);
+      return {
+        ...taskScore,
+        content: task?.content || 'Unknown task'
+      };
+    });
+  }
+  
+  get scoreDistribution() {
+    return this.scoringService.getScoreDistribution(this.scores());
+  }
   
   exportResults(format: 'text' | 'csv') {
     // TODO: Implement export functionality
@@ -211,7 +221,7 @@ export class ResultsPageComponent {
   }
   
   startNewSession() {
-    // TODO: Clear current session and navigate to brain dump
+    this.sessionStore.clearSession();
     console.log('Starting new session');
   }
 }

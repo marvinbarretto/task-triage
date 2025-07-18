@@ -3,6 +3,10 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   { 
     path: '', 
+    loadComponent: () => import('./features/category-overview/feature/category-overview-page.component').then(c => c.CategoryOverviewPageComponent)
+  },
+  { 
+    path: 'brain-dump', 
     loadComponent: () => import('./features/brain-dump/feature/brain-dump-page.component').then(c => c.BrainDumpPageComponent)
   },
   { 

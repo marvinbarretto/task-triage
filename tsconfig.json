@@ -3,7 +3,9 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "baseUrl": "./src",
     "paths": {
+      "@shared/*": ["app/shared/*"],
       "angular-foundation": [
         "./dist/angular-foundation"
       ]
