@@ -1,0 +1,46 @@
+/* Global styles for the Task Triage app */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #ffffff;
+}
+
+/* Reset default margins on common elements */
+h1, h2, h3, h4, h5, h6, p, ul, ol {
+  margin: 0 0 1rem 0;
+}
+
+/* Ensure pages work well with layout */
+main {
+  padding: 0 2rem;
+}
+
+/* Focus styles for accessibility */
+*:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+}
+
+/* Button and link consistency */
+button, a {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Responsive typography */
+@media (max-width: 768px) {
+  main {
+    padding: 0 1rem;
+  }
+}

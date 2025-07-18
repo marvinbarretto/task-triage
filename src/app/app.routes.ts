@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   { 
     path: '', 
-    loadComponent: () => import('./features/category-overview/feature/category-overview-page.component').then(c => c.CategoryOverviewPageComponent)
+    loadComponent: () => import('./features/dashboard/feature/dashboard-kanban.component').then(c => c.DashboardKanbanComponent)
   },
   { 
     path: 'brain-dump', 

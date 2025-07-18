@@ -8,7 +8,7 @@ import { TriageSessionStore } from '@shared/data-access/stores/triage-session.st
   selector: 'app-brain-dump-page',
   imports: [ReactiveFormsModule],
   template: `
-    <main>
+    <div class="page-content">
       <h1>Task Brain Dump</h1>
       <p>Get everything out of your head. Paste your tasks, thoughts, or notes below:</p>
 
@@ -44,13 +44,12 @@ import { TriageSessionStore } from '@shared/data-access/stores/triage-session.st
           </ul>
         </div>
       }
-    </main>
+    </div>
   `,
   styles: [`
-    main {
+    .page-content {
       max-width: 800px;
       margin: 0 auto;
-      padding: 2rem;
     }
 
     textarea {

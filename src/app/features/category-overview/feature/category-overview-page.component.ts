@@ -8,7 +8,7 @@ import { BulkInputService } from '@shared/data-access/services/bulk-input.servic
   selector: 'app-category-overview-page',
   imports: [RouterModule],
   template: `
-    <main>
+    <div class="page-content">
       <header class="dashboard-header">
         <div>
           <h1>Task Triage Dashboard</h1>
@@ -69,13 +69,12 @@ import { BulkInputService } from '@shared/data-access/services/bulk-input.servic
           </button>
         </section>
       }
-    </main>
+    </div>
   `,
   styles: [`
-    main {
+    .page-content {
       max-width: 1000px;
       margin: 0 auto;
-      padding: 2rem;
     }
     
     .dashboard-header {
