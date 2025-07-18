@@ -1,59 +1,73 @@
-# TaskTriage
+# Task Triage App
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.1.
+A task prioritization app that helps users systematically organize and prioritize their brain dumps through a rapid categorization workflow.
 
-## Development server
+## Project Structure
 
-To start a local development server, run:
+This workspace contains both the task-triage app and the angular-foundation library development:
 
+```
+task-triage/
+├── src/app/                    # Task triage application
+├── projects/angular-foundation/ # @fourfold/angular-foundation library
+├── dist/                       # Built outputs
+└── README.md                   # This file
+```
+
+## Development
+
+### Running the App
 ```bash
 ng serve
+# Opens on http://localhost:4200
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
+### Library Development
 ```bash
-ng generate component component-name
+# Test library
+npm run lib:test
+
+# Build library
+npm run lib:build
+
+# Release new library version
+npm run lib:release
+
+# Publish library to npm
+npm run lib:publish
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
+### Testing
 ```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
+# Test main app
 ng test
+
+# Test library only
+npm run lib:test
 ```
 
-## Running end-to-end tests
+## Task Triage App Features (Planned)
 
-For end-to-end (e2e) testing, run:
+- **Brain Dump Input** - Paste 10-20 lines of tasks
+- **Category Triage** - Rapid cycling through Time Sensitivity, Impact, Effort, Energy Level
+- **Smart Scoring** - Transparent priority calculation with configurable weights
+- **Sorted Output** - Clear prioritized task list with score breakdown
 
-```bash
-ng e2e
-```
+## Library (@fourfold/angular-foundation)
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+This project also develops a shared Angular utilities library published as `@fourfold/angular-foundation`. See `projects/angular-foundation/README.md` for library documentation.
 
-## Additional Resources
+## Tech Stack
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- **Angular 20** - Latest Angular framework
+- **TypeScript** - Type-safe development
+- **SCSS** - Styling
+- **Jasmine/Karma** - Testing
+- **Standard-Version** - Automated versioning
+
+## Contributing
+
+1. Make changes with conventional commits
+2. Test thoroughly (`npm run lib:test`)
+3. Use proper commit messages (`feat:`, `fix:`, etc.)
+4. Release follows semantic versioning
