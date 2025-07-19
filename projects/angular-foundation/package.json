@@ -1,6 +1,6 @@
 {
   "name": "@fourfold/angular-foundation",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Shared Angular utilities for rapid app development",
   "author": {
     "name": "Fourfold Media"
