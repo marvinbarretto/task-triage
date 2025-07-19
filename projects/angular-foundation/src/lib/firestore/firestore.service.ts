@@ -1,21 +1,21 @@
 import { Injectable, inject, Injector, runInInjectionContext } from '@angular/core';
-import { 
-  Firestore, 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  addDoc, 
+import {
+  Firestore,
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  addDoc,
   writeBatch,
   query,
   getDocFromCache,
   getDocFromServer,
   getDocsFromCache,
   getDocsFromServer,
-  CollectionReference, 
+  CollectionReference,
   DocumentReference,
   QuerySnapshot,
   DocumentData,
@@ -29,7 +29,7 @@ import { FirebaseMetricsService } from './firebase-metrics.service';
   providedIn: 'root',
 })
 export class FirestoreService {
-  private injector = inject(Injector);
+  private readonly injector = inject(Injector);
   protected firestore = inject(Firestore);
   private metricsService = inject(FirebaseMetricsService, { optional: true });
   protected platform = inject(SsrPlatformService);
@@ -193,51 +193,55 @@ export class FirestoreService {
    * Tries cache first, then server if not found.
    */
   public async getDocByPath<T>(path: string): Promise<T | undefined> {
-    return runInInjectionContext(this.injector, async () => {
-      const ref = doc(this.firestore, path) as DocumentReference<T>;
+    const ref = doc(this.firestore, path) as DocumentReference<T>;
 
-      try {
-        // Try cache first
-        const cacheSnap = await getDocFromCache(ref);
-        if (cacheSnap.exists()) {
-          this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'getDocByPath', 'cache');
-          return cacheSnap.data() as T;
-        }
-      } catch (error) {
-        // Cache miss - fall through to server
+    try {
+      // Try cache first
+      const cacheSnap = await runInInjectionContext(this.injector, () =>
+        getDocFromCache(ref)
+      );
+      if (cacheSnap.exists()) {
+        this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'getDocByPath', 'cache');
+        return cacheSnap.data() as T;
       }
+    } catch (error) {
+      // Cache miss - fall through to server
+    }
 
-      // Fallback to server
-      this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'getDocByPath', 'firebase');
-      const serverSnap = await getDocFromServer(ref);
-      return serverSnap.exists() ? (serverSnap.data() as T) : undefined;
-    });
+    // Fallback to server
+    this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'getDocByPath', 'firebase');
+    const serverSnap = await runInInjectionContext(this.injector, () =>
+      getDocFromServer(ref)
+    );
+    return serverSnap.exists() ? (serverSnap.data() as T) : undefined;
   }
 
   public async getDocsWhere<T>(
     path: string,
     ...conditions: QueryConstraint[]
   ): Promise<(T & { id: string })[]> {
-    return runInInjectionContext(this.injector, async () => {
-      const ref = collection(this.firestore, path);
-      const q = query(ref, ...conditions);
+    const ref = collection(this.firestore, path);
+    const q = query(ref, ...conditions);
 
-      try {
-        // Try cache first
-        const cacheSnapshot = await getDocsFromCache(q);
-        if (!cacheSnapshot.empty) {
-          this.metricsService?.trackCall('read', path, 'getDocsWhere', 'cache');
-          return this.mapSnapshotWithId<T>(cacheSnapshot);
-        }
-      } catch (error) {
-        // Cache miss - fall through to server
+    try {
+      // Try cache first
+      const cacheSnapshot = await runInInjectionContext(this.injector, () =>
+        getDocsFromCache(q)
+      );
+      if (!cacheSnapshot.empty) {
+        this.metricsService?.trackCall('read', path, 'getDocsWhere', 'cache');
+        return this.mapSnapshotWithId<T>(cacheSnapshot);
       }
+    } catch (error) {
+      // Cache miss - fall through to server
+    }
 
-      // Fallback to server
-      this.metricsService?.trackCall('read', path, 'getDocsWhere', 'firebase');
-      const serverSnapshot = await getDocsFromServer(q);
-      return this.mapSnapshotWithId<T>(serverSnapshot);
-    });
+    // Fallback to server
+    this.metricsService?.trackCall('read', path, 'getDocsWhere', 'firebase');
+    const serverSnapshot = await runInInjectionContext(this.injector, () =>
+      getDocsFromServer(q)
+    );
+    return this.mapSnapshotWithId<T>(serverSnapshot);
   }
 
   /**
@@ -247,33 +251,35 @@ export class FirestoreService {
     path: string,
     ...conditions: QueryConstraint[]
   ): Promise<(T & { id: string })[]> {
-    return runInInjectionContext(this.injector, async () => {
-      const ref = collection(this.firestore, path);
-      const q = query(ref, ...conditions);
-      
-      console.log(`[Firestore] 🌐 Force fetching from server: ${path}`);
-      this.metricsService?.trackCall('read', path, 'getDocsWhereFromServer', 'firebase');
-      const serverSnapshot = await getDocsFromServer(q);
-      return this.mapSnapshotWithId<T>(serverSnapshot);
-    });
+    const ref = collection(this.firestore, path);
+    const q = query(ref, ...conditions);
+
+    console.log(`[Firestore] 🌐 Force fetching from server: ${path}`);
+    this.metricsService?.trackCall('read', path, 'getDocsWhereFromServer', 'firebase');
+    const serverSnapshot = await runInInjectionContext(this.injector, () =>
+      getDocsFromServer(q)
+    );
+    return this.mapSnapshotWithId<T>(serverSnapshot);
   }
 
   public async exists(path: string): Promise<boolean> {
-    return runInInjectionContext(this.injector, async () => {
-      const ref = doc(this.firestore, path);
+    const ref = doc(this.firestore, path);
 
-      try {
-        // Try cache first
-        const cacheSnap = await getDocFromCache(ref);
-        this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'exists', 'cache');
-        return cacheSnap.exists();
-      } catch (error) {
-        // Cache miss - fallback to server
-        this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'exists', 'firebase');
-        const serverSnap = await getDocFromServer(ref);
-        return serverSnap.exists();
-      }
-    });
+    try {
+      // Try cache first
+      const cacheSnap = await runInInjectionContext(this.injector, () =>
+        getDocFromCache(ref)
+      );
+      this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'exists', 'cache');
+      return cacheSnap.exists();
+    } catch (error) {
+      // Cache miss - fallback to server
+      this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'exists', 'firebase');
+      const serverSnap = await runInInjectionContext(this.injector, () =>
+        getDocFromServer(ref)
+      );
+      return serverSnap.exists();
+    }
   }
 
   /**
