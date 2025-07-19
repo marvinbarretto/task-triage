@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.5](https://github.com/marvinbarretto/task-triage/compare/v0.1.4...v0.1.5) (2025-07-19)
+
+
+### Features
+
+* [Firebase] Seperate cache and DB counts ([4edc2d9](https://github.com/marvinbarretto/task-triage/commit/4edc2d953c73d673e5328295689a379fc43e8aa8))
+
 ### [0.1.4](https://github.com/marvinbarretto/task-triage/compare/v0.1.3...v0.1.4) (2025-07-19)
 
 ### [0.1.3](https://github.com/marvinbarretto/task-triage/compare/v0.1.2...v0.1.3) (2025-07-19)
