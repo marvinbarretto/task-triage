@@ -10,7 +10,7 @@
     "lib:test": "ng test angular-foundation",
     "lib:build": "ng build angular-foundation",
     "lib:release": "npm run lib:build && cd projects/angular-foundation && standard-version",
-    "lib:publish": "npm run lib:release && cd dist/angular-foundation && npm publish"
+    "lib:publish": "cd dist/angular-foundation && npm publish"
   },
   "prettier": {
     "overrides": [

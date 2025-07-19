@@ -65,9 +65,52 @@ This project also develops a shared Angular utilities library published as `@fou
 - **Jasmine/Karma** - Testing
 - **Standard-Version** - Automated versioning
 
+## Library Deployment
+
+Step-by-step process to release and publish the `@fourfold/angular-foundation` library:
+
+### 1. Build and Test
+```bash
+npm run lib:build    # Build library
+npm run lib:test     # Run tests to ensure everything works
+```
+
+### 2. Commit Changes
+```bash
+git add .
+git commit -m "feat: describe your changes"
+```
+Use conventional commits:
+- `feat:` - New feature (minor version bump)
+- `fix:` - Bug fix (patch version bump)  
+- `feat!:` - Breaking change (major version bump)
+
+### 3. Release (Bump Version)
+```bash
+npm run lib:release
+```
+This will:
+- Analyze commit messages for version bump
+- Update version in `package.json`
+- Generate/update `CHANGELOG.md`
+- Create git tag
+
+### 4. Publish to npm
+```bash
+npm run lib:publish
+```
+This publishes the built library to npm registry.
+
+### 5. Push to Git
+```bash
+git push --follow-tags
+```
+Push commits and tags to remote repository.
+
 ## Contributing
 
 1. Make changes with conventional commits
 2. Test thoroughly (`npm run lib:test`)
 3. Use proper commit messages (`feat:`, `fix:`, etc.)
-4. Release follows semantic versioning
+4. Follow deployment process above
+5. Release follows semantic versioning

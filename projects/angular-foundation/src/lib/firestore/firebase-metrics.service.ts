@@ -16,6 +16,8 @@ export class FirebaseMetricsService {
   private callHistory: FirebaseCallMetrics[] = [];
   private callCounter = 0;
   private requestIndex = 0;
+  private cacheIndex = 0;
+  private firebaseIndex = 0;
 
   // Configuration
   private readonly MAX_HISTORY = 100; // Keep last 100 calls for analysis
@@ -42,6 +44,7 @@ export class FirebaseMetricsService {
    */
   trackCall(operation: FirebaseOperation, collection: string, details?: string, source: RequestSource = 'firebase'): void {
     const requestIdx = ++this.requestIndex;
+    const sourceIdx = source === 'cache' ? ++this.cacheIndex : ++this.firebaseIndex;
     const callId = `${operation}-${collection}-${++this.callCounter}`;
     const timestamp = Date.now();
     
@@ -68,10 +71,10 @@ export class FirebaseMetricsService {
       this.callHistory.shift();
     }
     
-    // Enhanced logging with source and request index
+    // Enhanced logging with separate source counters
     const sourceIcon = source === 'cache' ? '🎯' : '🔥';
     const sourceLabel = source === 'cache' ? 'CACHE' : 'FIREBASE';
-    console.log(`${sourceIcon} [${sourceLabel}] #${requestIdx} ${operation.toUpperCase()} ${collection}${details ? ` (${details})` : ''} [${callId}]`);
+    console.log(`${sourceIcon} [${sourceLabel}] #${sourceIdx} ${operation.toUpperCase()} ${collection}${details ? ` (${details})` : ''} [${callId}] (req #${requestIdx})`);
     
     // Log milestone summaries
     const totalCalls = Array.from(this.operationCalls.values()).reduce((sum, count) => sum + count, 0);
@@ -163,6 +166,8 @@ export class FirebaseMetricsService {
     this.callHistory = [];
     this.callCounter = 0;
     this.requestIndex = 0;
+    this.cacheIndex = 0;
+    this.firebaseIndex = 0;
     this.sessionStart = Date.now();
     
     console.log('🔥 [FirebaseMetrics] ✅ Session reset complete - new tracking session started');
