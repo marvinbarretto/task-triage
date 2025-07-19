@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.6](https://github.com/marvinbarretto/task-triage/compare/v0.1.5...v0.1.6) (2025-07-19)
+
+
+### Bug Fixes
+
+* [Firestore] Apply injector context per method is now necessary as its in another app ([24afb6c](https://github.com/marvinbarretto/task-triage/commit/24afb6c6fdb26760aa382df971976d582aad2bf5))
+
 ### [0.1.5](https://github.com/marvinbarretto/task-triage/compare/v0.1.4...v0.1.5) (2025-07-19)
 
 
