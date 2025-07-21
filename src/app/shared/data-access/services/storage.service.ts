@@ -242,4 +242,36 @@ export class StorageService {
       });
     }) || Promise.resolve();
   }
+
+  // Generic storage methods
+  getItem(key: string): string | null {
+    return this.platform.onlyOnBrowser(() => {
+      try {
+        return localStorage.getItem(key);
+      } catch (error) {
+        console.error(`Failed to get item '${key}':`, error);
+        return null;
+      }
+    }) || null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.platform.onlyOnBrowser(() => {
+      try {
+        localStorage.setItem(key, value);
+      } catch (error) {
+        console.error(`Failed to set item '${key}':`, error);
+      }
+    });
+  }
+
+  removeItem(key: string): void {
+    this.platform.onlyOnBrowser(() => {
+      try {
+        localStorage.removeItem(key);
+      } catch (error) {
+        console.error(`Failed to remove item '${key}':`, error);
+      }
+    });
+  }
 }
