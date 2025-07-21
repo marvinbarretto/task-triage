@@ -34,17 +34,29 @@ export class TriageSessionStore {
     const session = this.session();
     if (!session || session.tasks.length === 0) return [];
     
+    // Only use selected categories for scoring
+    const allCategories = this.configStore.categories();
+    const selectedCategories = allCategories.filter(cat => 
+      session.selectedCategories.includes(cat.key)
+    );
+    
     return this.scoringService.calculateScores(
       session.tasks,
       session.evaluations,
       this.configStore.weights(),
-      this.configStore.categories()
+      selectedCategories
     );
   });
   
   readonly canShowResults = computed(() => {
+    const session = this.session();
+    if (!session) return false;
+    
     const progress = this.categoryProgress();
-    return progress.completedCount >= 2;
+    const selectedCount = session.selectedCategories.length;
+    
+    // Need at least 2 categories selected and all selected categories completed
+    return selectedCount >= 2 && progress.completedCount >= Math.min(selectedCount, 2);
   });
   
   readonly sortedTasks = computed(() => {
@@ -62,33 +74,57 @@ export class TriageSessionStore {
   // Actions
   startNewSession(tasks: Task[]): void {
     const now = new Date();
-    const categories = this.configStore.categories();
     
     const initialProgress: CategoryProgress = {
       categories: {},
       completedCount: 0
     };
     
-    // Initialize all categories as incomplete
-    categories.forEach(cat => {
-      initialProgress.categories[cat.key] = false;
-    });
-    
     const newSession: TriageSession = {
       id: `session_${Date.now()}`,
       tasks,
+      selectedCategories: [], // Start with no categories selected
       evaluations: new Map(),
       categoryProgress: initialProgress,
-      currentState: MainPageState.CATEGORY_OVERVIEW,
+      currentState: MainPageState.CATEGORY_SELECTION,
       canShowResults: false,
       createdAt: now,
       updatedAt: now
     };
     
+    console.log(`[Store] New session created with ${tasks.length} tasks`);
     this.sessionSignal.set(newSession);
   }
   
+  setSelectedCategories(categoryKeys: string[]): void {
+    console.log(`[Store] Categories selected: [${categoryKeys.join(', ')}]`);
+    
+    this.sessionSignal.update(session => {
+      if (!session) return session;
+      
+      const initialProgress: CategoryProgress = {
+        categories: {},
+        completedCount: 0
+      };
+      
+      // Initialize only selected categories as incomplete
+      categoryKeys.forEach(key => {
+        initialProgress.categories[key] = false;
+      });
+      
+      return {
+        ...session,
+        selectedCategories: categoryKeys,
+        categoryProgress: initialProgress,
+        currentState: MainPageState.CATEGORY_OVERVIEW,
+        updatedAt: new Date()
+      };
+    });
+  }
+  
   updateTaskEvaluation(taskId: string, categoryKey: string, rating: 1 | 2 | 3): void {
+    console.log(`[Store] Task evaluation updated: ${taskId} -> ${categoryKey}: ${rating}`);
+    
     this.sessionSignal.update(session => {
       if (!session) return session;
       
@@ -109,6 +145,8 @@ export class TriageSessionStore {
   }
   
   completeCategory(categoryKey: string): void {
+    console.log(`[Store] Category ${categoryKey} marked complete`);
+    
     this.sessionSignal.update(session => {
       if (!session) return session;
       
@@ -122,6 +160,8 @@ export class TriageSessionStore {
       
       updatedProgress.completedCount = Object.values(updatedProgress.categories)
         .filter(completed => completed).length;
+      
+      console.log(`[Store] Progress update: ${updatedProgress.completedCount}/${session.selectedCategories.length} categories completed`);
       
       return {
         ...session,
@@ -144,6 +184,7 @@ export class TriageSessionStore {
   }
   
   clearSession(): void {
+    console.log('[Store] Session cleared');
     this.sessionSignal.set(null);
   }
   

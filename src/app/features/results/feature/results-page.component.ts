@@ -43,7 +43,7 @@ import { ScoringService } from '@shared/data-access/services/scoring.service';
       </section>
       
       <section class="actions-section">
-        <button [routerLink]="['/overview']" class="action-btn secondary">
+        <button [routerLink]="['/']" class="action-btn secondary">
           Make Changes
         </button>
         <button (click)="startNewSession()" class="action-btn primary">

@@ -1,10 +1,13 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EventCard, EventType } from '@shared/data-access/models/event.model';
+import { EventTypeBadgeComponent } from '@shared/ui/event-type-badge/event-type-badge.component';
+import { EventDetailsListComponent, EventDetailItem } from '@shared/ui/event-details-list/event-details-list.component';
+import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags.component';
 
 @Component({
   selector: 'app-event-card',
-  imports: [CommonModule],
+  imports: [CommonModule, EventTypeBadgeComponent, EventDetailsListComponent, LifestyleTagsComponent],
   template: `
     <div 
       class="event-card"
@@ -20,10 +23,7 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
       (dragend)="onDragEnd($event)">
       
       <div class="card-header">
-        <div class="event-type">
-          <span class="type-icon">{{getTypeIcon(card.suggestedType)}}</span>
-          <span class="type-label">{{getTypeLabel(card.suggestedType)}}</span>
-        </div>
+        <app-event-type-badge [type]="card.suggestedType"></app-event-type-badge>
         
         <div class="header-right">
           <div class="confidence-badge" [class]="getConfidenceClass()">
@@ -50,64 +50,30 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
              title="Click to edit description">{{card.extractedDescription}}</p>
         }
 
-        <!-- Lifestyle Tags -->
-        <div class="lifestyle-tags">
-          @for (tag of getLifestyleTags(); track tag) {
-            <span class="lifestyle-tag" 
-                  [style.background-color]="getTagDisplay(tag).color + '20'"
-                  [style.border-color]="getTagDisplay(tag).color"
-                  [style.color]="getTagDisplay(tag).color">
-              <span class="tag-emoji">{{getTagDisplay(tag).emoji}}</span>
-              <span class="tag-label">{{getTagDisplay(tag).label}}</span>
-            </span>
-          }
-        </div>
+        <app-lifestyle-tags 
+          [tags]="getLifestyleTags()" 
+          [compact]="true">
+        </app-lifestyle-tags>
 
-        <div class="event-details">
-          @if (card.suggestedStartDate) {
-            <div class="detail-item">
-              <span class="detail-icon">📅</span>
-              <span class="detail-text">{{formatDate(card.suggestedStartDate)}}</span>
-            </div>
-          }
-          
-          @if (card.suggestedTime) {
-            <div class="detail-item">
-              <span class="detail-icon">🕒</span>
-              <span class="detail-text">{{card.suggestedTime}}</span>
-            </div>
-          }
-          
-          @if (card.suggestedDurationMinutes) {
-            <div class="detail-item">
-              <span class="detail-icon">⏱️</span>
-              <span class="detail-text">{{formatDuration(card.suggestedDurationMinutes)}}</span>
-            </div>
-          }
-          
-          @if (!card.suggestedStartDate && !card.suggestedTime) {
-            <div class="detail-item no-timing">
-              <span class="detail-icon">⏰</span>
-              <span class="detail-text">No specific time suggested</span>
-            </div>
-          }
-        </div>
+        <app-event-details-list 
+          [details]="getEventDetails()"
+          [showNoDetailsMessage]="true">
+        </app-event-details-list>
       </div>
 
-      <div class="card-footer">
-        <div class="reasoning">
-          <strong>AI Analysis:</strong> {{card.reasoning}}
-        </div>
-        
-        <div class="card-actions">
-          <button 
-            type="button" 
-            class="customize-btn"
-            (click)="onCustomizeClick($event)"
-            [disabled]="!isSelected">
-            Customize
-          </button>
-        </div>
+      <details class="card-footer">
+        <summary>AI Analysis</summary>
+        <div class="reasoning">{{card.reasoning}}</div>
+      </details>
+      
+      <div class="card-actions">
+        <button 
+          type="button" 
+          class="customize-btn"
+          (click)="onCustomizeClick($event)"
+          [disabled]="!isSelected">
+          Customize
+        </button>
       </div>
       
       @if (isSelected) {
@@ -120,8 +86,8 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
   styles: [`
     .event-card {
       border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 1.5rem;
+      border-radius: 8px;
+      padding: 1rem;
       background: white;
       cursor: grab;
       transition: all 0.2s ease;
@@ -164,7 +130,7 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
 
     .header-right {
@@ -173,23 +139,6 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
       gap: 0.5rem;
     }
 
-    .event-type {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .type-icon {
-      font-size: 1.2rem;
-    }
-
-    .type-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #6b7280;
-    }
 
     .confidence-badge {
       font-size: 0.75rem;
@@ -242,7 +191,7 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
     }
 
     .card-content {
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
 
     .event-title {
@@ -282,83 +231,50 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
       background-color: #f3f4f6;
     }
 
-    .lifestyle-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin: 0.75rem 0;
-    }
 
-    .lifestyle-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.5rem;
-      border: 1px solid;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      transition: transform 0.2s ease;
-    }
-
-    .lifestyle-tag:hover {
-      transform: scale(1.05);
-    }
-
-    .tag-emoji {
-      font-size: 0.8rem;
-    }
-
-    .tag-label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .event-details {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .detail-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .detail-item.no-timing {
-      opacity: 0.6;
-    }
-
-    .detail-icon {
-      font-size: 0.9rem;
-    }
-
-    .detail-text {
-      font-size: 0.85rem;
-      color: #374151;
-    }
 
     .card-footer {
       border-top: 1px solid #f3f4f6;
-      padding-top: 1rem;
+      margin-top: 0.75rem;
+      padding-top: 0.5rem;
+    }
+
+    .card-footer summary {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0.25rem 0;
+      list-style: none;
+      user-select: none;
+    }
+
+    .card-footer summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .card-footer summary::before {
+      content: '▶';
+      margin-right: 0.25rem;
+      transition: transform 0.2s ease;
+      font-size: 0.6rem;
+    }
+
+    .card-footer[open] summary::before {
+      transform: rotate(90deg);
     }
 
     .reasoning {
-      margin-bottom: 1rem;
-      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
       color: #6b7280;
-      line-height: 1.4;
-    }
-
-    .reasoning strong {
-      color: #374151;
+      line-height: 1.3;
     }
 
     .card-actions {
       display: flex;
       justify-content: flex-end;
+      margin-top: 0.5rem;
     }
 
     .customize-btn {
@@ -411,7 +327,7 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
 
     @media (max-width: 640px) {
       .event-card {
-        padding: 1rem;
+        padding: 0.75rem;
       }
       
       .card-header {
@@ -420,9 +336,6 @@ import { EventCard, EventType } from '@shared/data-access/models/event.model';
         gap: 0.5rem;
       }
       
-      .event-details {
-        gap: 0.25rem;
-      }
     }
   `]
 })
@@ -518,23 +431,6 @@ export class EventCardComponent {
     this.dragEnd.emit({card: this.card});
   }
 
-  getTypeIcon(type: EventType): string {
-    const icons: Record<EventType, string> = {
-      'meeting': '🤝',
-      'task': '✅',
-      'reminder': '🔔',
-      'appointment': '📅',
-      'deadline': '⏰',
-      'personal': '🏠',
-      'work': '💼'
-    };
-    
-    return icons[type] || icons.task;
-  }
-
-  getTypeLabel(type: EventType): string {
-    return type.charAt(0).toUpperCase() + type.slice(1);
-  }
 
   getConfidenceClass(): string {
     if (this.card.confidence >= 0.8) return 'high';
@@ -542,40 +438,6 @@ export class EventCardComponent {
     return 'low';
   }
 
-  formatDate(date: Date): string {
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
-    
-    const eventDate = new Date(date);
-    
-    if (eventDate.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (eventDate.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
-    } else {
-      return eventDate.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric'
-      });
-    }
-  }
-
-  formatDuration(minutes: number): string {
-    if (minutes < 60) {
-      return `${minutes} min`;
-    } else {
-      const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      
-      if (remainingMinutes === 0) {
-        return `${hours}h`;
-      } else {
-        return `${hours}h ${remainingMinutes}m`;
-      }
-    }
-  }
 
   getCardDataForDrag(): string {
     return JSON.stringify({
@@ -586,104 +448,31 @@ export class EventCardComponent {
   }
 
   getLifestyleTags(): string[] {
-    const title = this.card.extractedTitle.toLowerCase();
-    const description = this.card.extractedDescription?.toLowerCase() || '';
-    const type = this.card.suggestedType;
-    const content = `${title} ${description}`;
-    
-    const tags: string[] = [];
-
-    // 🏃‍♀️ Physical Health & Fitness
-    if (content.match(/(exercise|workout|gym|run|walk|bike|swim|yoga|pilates|sport|fitness|dance|hike|stretch|active|physical)/)) {
-      tags.push('fitness');
-    }
-
-    // 🍎 Nutrition & Wellness
-    if (content.match(/(meal|eat|cook|food|nutrition|diet|healthy|organic|vitamin|water|hydrate|lunch|dinner|breakfast)/)) {
-      tags.push('nutrition');
-    }
-
-    // 🧠 Mental Health & Mindfulness
-    if (content.match(/(meditat|mindful|therapy|mental|stress|relax|breathe|journal|gratitude|self-care|wellness)/)) {
-      tags.push('mental-health');
-    }
-
-    // 💼 Career & Professional
-    if (type === 'work' || content.match(/(work|job|career|meeting|project|professional|skill|training|conference|staff|business)/)) {
-      tags.push('career');
-    }
-
-    // 👥 Social & Relationships
-    if (content.match(/(friend|family|social|date|party|gathering|visit|call|relationship|community|people)/)) {
-      tags.push('social');
-    }
-
-    // 🎨 Creative & Learning
-    if (content.match(/(learn|study|read|course|creative|art|music|write|hobby|skill|practice|book|research)/)) {
-      tags.push('learning');
-    }
-
-    // 🏠 Home & Organization
-    if (content.match(/(clean|organize|home|house|chore|tidy|repair|garden|decorate|maintenance)/)) {
-      tags.push('home');
-    }
-
-    // 💰 Financial & Planning
-    if (content.match(/(budget|money|finance|invest|plan|tax|bank|save|expense|bill|financial)/)) {
-      tags.push('finance');
-    }
-
-    // 🌍 Environment & Community
-    if (content.match(/(volunteer|environment|community|charity|green|sustainable|recycle|nature|volunteer)/)) {
-      tags.push('community');
-    }
-
-    // 🎯 Personal Goals & Growth
-    if (content.match(/(goal|resolution|habit|improve|develop|challenge|achieve|progress|growth)/)) {
-      tags.push('growth');
-    }
-
-    // 🎪 Fun & Entertainment
-    if (content.match(/(fun|entertainment|movie|game|show|concert|festival|vacation|travel|cinema|beer)/)) {
-      tags.push('entertainment');
-    }
-
-    // 😴 Rest & Recovery
-    if (content.match(/(sleep|rest|nap|recover|spa|massage|vacation|break|leisure|relax)/)) {
-      tags.push('rest');
-    }
-
-    // 🚗 Travel & Transportation
-    if (content.match(/(travel|trip|drive|transport|car|keys|journey|commute)/)) {
-      tags.push('travel');
-    }
-
-    // Default to 'general' if no specific category found
-    if (tags.length === 0) {
-      tags.push('general');
-    }
-
-    return tags;
+    return LifestyleTagsComponent.generateTagsFromContent(
+      this.card.extractedTitle,
+      this.card.extractedDescription || '',
+      this.card.suggestedType
+    );
   }
 
-  getTagDisplay(tag: string): { emoji: string, label: string, color: string } {
-    const tagMap: Record<string, { emoji: string, label: string, color: string }> = {
-      'fitness': { emoji: '🏃‍♀️', label: 'Fitness', color: '#ef4444' },
-      'nutrition': { emoji: '🍎', label: 'Nutrition', color: '#22c55e' },
-      'mental-health': { emoji: '🧠', label: 'Mental Health', color: '#8b5cf6' },
-      'career': { emoji: '💼', label: 'Career', color: '#3b82f6' },
-      'social': { emoji: '👥', label: 'Social', color: '#f59e0b' },
-      'learning': { emoji: '🎨', label: 'Learning', color: '#06b6d4' },
-      'home': { emoji: '🏠', label: 'Home', color: '#84cc16' },
-      'finance': { emoji: '💰', label: 'Finance', color: '#10b981' },
-      'community': { emoji: '🌍', label: 'Community', color: '#14b8a6' },
-      'growth': { emoji: '🎯', label: 'Growth', color: '#6366f1' },
-      'entertainment': { emoji: '🎪', label: 'Fun', color: '#ec4899' },
-      'rest': { emoji: '😴', label: 'Rest', color: '#64748b' },
-      'travel': { emoji: '🚗', label: 'Travel', color: '#f97316' },
-      'general': { emoji: '📝', label: 'General', color: '#6b7280' }
-    };
+  getEventDetails(): EventDetailItem[] {
+    const details: EventDetailItem[] = [];
 
-    return tagMap[tag] || tagMap['general'];
+    // Add date detail if available
+    if (this.card.suggestedStartDate) {
+      details.push(EventDetailsListComponent.createDateDetail(this.card.suggestedStartDate));
+    }
+
+    // Add time detail if available
+    if (this.card.suggestedTime) {
+      details.push(EventDetailsListComponent.createTimeDetail(this.card.suggestedTime));
+    }
+
+    // Add duration detail if available
+    if (this.card.suggestedDurationMinutes) {
+      details.push(EventDetailsListComponent.createDurationDetail(this.card.suggestedDurationMinutes));
+    }
+
+    return details;
   }
 }

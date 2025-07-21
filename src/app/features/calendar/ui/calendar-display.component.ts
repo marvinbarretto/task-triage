@@ -5,16 +5,23 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin, { DateClickArg, Draggable } from '@fullcalendar/interaction';
 import { CalendarEvent, Event, EventCard } from '@shared/data-access/models/event.model';
+import { EventDetailsOverlayComponent } from './event-details-overlay.component';
 
 @Component({
   selector: 'app-calendar-display',
-  imports: [FullCalendarModule],
+  imports: [FullCalendarModule, EventDetailsOverlayComponent],
   template: `
     <div class="calendar-wrapper">
       <full-calendar
         #calendar
         [options]="calendarOptions">
       </full-calendar>
+      
+      <app-event-details-overlay
+        [event]="selectedEvent"
+        [isVisible]="showEventDetails"
+        (close)="onCloseEventDetails()">
+      </app-event-details-overlay>
     </div>
   `,
   styles: [`
@@ -209,6 +216,10 @@ export class CalendarDisplayComponent implements AfterViewInit, OnChanges, OnDes
   // DOM observation for dynamic card detection
   private cardMutationObserver?: MutationObserver;
   private isObservingCards = false;
+  
+  // Event details overlay state
+  selectedEvent: Event | null = null;
+  showEventDetails = false;
 
   calendarOptions: CalendarOptions = {
     plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
@@ -374,8 +385,18 @@ export class CalendarDisplayComponent implements AfterViewInit, OnChanges, OnDes
         updatedAt: new Date()  // We don't have this from FullCalendar
       };
       
+      // Show the event details overlay
+      this.selectedEvent = event;
+      this.showEventDetails = true;
+      
+      // Also emit for parent component if needed
       this.eventClick.emit(event);
     }
+  }
+  
+  onCloseEventDetails(): void {
+    this.showEventDetails = false;
+    this.selectedEvent = null;
   }
 
   private onDateClick(arg: DateClickArg): void {

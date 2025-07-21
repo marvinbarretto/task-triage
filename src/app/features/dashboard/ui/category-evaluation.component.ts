@@ -4,15 +4,21 @@ import { TriageSessionStore } from '@shared/data-access/stores/triage-session.st
 import { ConfigStore } from '@shared/data-access/stores/config.store';
 
 @Component({
-  selector: 'app-categories-column',
+  selector: 'app-category-evaluation',
   imports: [RouterModule],
   template: `
     <div class="categories-content">
       @if (!session()) {
         <div class="waiting-state">
           <div class="waiting-icon">⏳</div>
-          <h3>Waiting for Tasks</h3>
-          <p>Process your brain dump in the first column to begin category evaluation</p>
+          <h3>Waiting for Categories</h3>
+          <p>Select your categories in the previous column to begin evaluation</p>
+        </div>
+      } @else if (!hasSelectedCategories) {
+        <div class="waiting-state">
+          <div class="waiting-icon">🎯</div>
+          <h3>Categories Not Selected</h3>
+          <p>Choose your evaluation categories in the previous column first</p>
         </div>
       } @else {
         <div class="categories-list">
@@ -212,20 +218,33 @@ import { ConfigStore } from '@shared/data-access/stores/config.store';
     }
   `]
 })
-export class CategoriesColumnComponent {
+export class CategoryEvaluationComponent {
   private sessionStore = inject(TriageSessionStore);
   private configStore = inject(ConfigStore);
   
   session = this.sessionStore.session;
-  categories = this.configStore.categories;
+  allCategories = this.configStore.categories;
   categoryProgress = this.sessionStore.categoryProgress;
+  
+  get hasSelectedCategories() {
+    const session = this.session();
+    return session?.selectedCategories && session.selectedCategories.length > 0;
+  }
+  
+  get selectedCategories() {
+    const session = this.session();
+    const allCats = this.allCategories();
+    const selectedKeys = session?.selectedCategories || [];
+    
+    return allCats.filter(cat => selectedKeys.includes(cat.key));
+  }
   
   get completedCategories() {
     return this.categoryProgress().completedCount;
   }
   
   get categoriesWithProgress() {
-    const cats = this.categories();
+    const cats = this.selectedCategories;
     const progress = this.categoryProgress();
     
     return cats.map(cat => ({

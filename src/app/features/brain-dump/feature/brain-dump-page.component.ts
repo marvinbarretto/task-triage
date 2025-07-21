@@ -199,8 +199,8 @@ Examples:
       console.log(`Created ${tasks.length} tasks:`, tasks);
       console.log('Processing notes:', this.processingNotes);
 
-      // Navigate to overview
-      await this.router.navigate(['/overview']);
+      // Navigate to dashboard
+      await this.router.navigate(['/']);
     } catch (error) {
       this.errorMessage = 'Something went wrong processing your tasks. Please try again.';
       console.error('Brain dump processing error:', error);
