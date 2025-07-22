@@ -62,18 +62,28 @@ export class CalendarActivityAnnouncerService {
    * Announce when an event has been added to the calendar
    */
   announceEventAdded(event: Event, context?: AnnouncementContext): void {
-    let message = `Added "${event.title}" to your calendar`;
-    let details = context?.reason;
+    let message: string;
+    let details: string;
     
-    // Generate more specific message based on context
+    // Generate more specific message based on context and timing
+    const eventTime = event.startDate;
+    const timeDescription = this.getEventTimeDescription(eventTime);
+    
     if (context?.source === 'drag_drop') {
-      message = `📅 Dragged "${event.title}" to calendar`;
+      message = `📅 Scheduled "${event.title}" ${timeDescription}`;
+      details = context.reason || `Placed at ${eventTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
     } else if (context?.source === 'smart_scheduling') {
-      message = `🧠 AI scheduled "${event.title}"`;
+      message = `🧠 AI scheduled "${event.title}" ${timeDescription}`;
+      details = this.getSmartSchedulingReason(eventTime, context);
     } else if (context?.source === 'quick_add') {
-      message = `⚡ Quick-added "${event.title}"`;
+      message = `⚡ Quick-added "${event.title}" ${timeDescription}`;
+      details = context.reason || 'Added to next available slot';
+    } else if (context?.source === 'form_submit') {
+      message = `📝 Created "${event.title}" ${timeDescription}`;
+      details = context.reason || 'Manually configured event';
     } else {
-      message = `📅 ${message}`;
+      message = `📅 Added "${event.title}" ${timeDescription}`;
+      details = context?.reason || '';
     }
 
     const announcement: CalendarAnnouncement = {
@@ -88,10 +98,72 @@ export class CalendarActivityAnnouncerService {
       trigger: context?.trigger,
       location: context?.location,
       reason: context?.reason,
-      metadata: context?.metadata
+      metadata: {
+        ...context?.metadata,
+        eventTime: eventTime.toISOString(),
+        duration: event.durationMinutes,
+        timeDescription
+      }
     };
 
     this.addAnnouncement(announcement);
+  }
+
+  /**
+   * Get a friendly description of when an event is scheduled
+   */
+  private getEventTimeDescription(eventTime: Date): string {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const eventDate = new Date(eventTime.getFullYear(), eventTime.getMonth(), eventTime.getDate());
+    
+    const daysDiff = (eventDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000);
+    const timeStr = eventTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    
+    if (daysDiff === 0) {
+      return `today at ${timeStr}`;
+    } else if (daysDiff === 1) {
+      return `tomorrow at ${timeStr}`;
+    } else if (daysDiff < 7) {
+      const dayName = eventTime.toLocaleDateString([], { weekday: 'long' });
+      return `${dayName} at ${timeStr}`;
+    } else {
+      const dateStr = eventTime.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      return `${dateStr} at ${timeStr}`;
+    }
+  }
+
+  /**
+   * Generate specific reasoning for smart scheduling decisions
+   */
+  private getSmartSchedulingReason(eventTime: Date, context?: AnnouncementContext): string {
+    const hour = eventTime.getHours();
+    let reason = '';
+    
+    // Add time preference reasoning
+    if (hour >= 9 && hour <= 11) {
+      reason = 'Placed in optimal morning focus time';
+    } else if (hour >= 14 && hour <= 16) {
+      reason = 'Scheduled in productive afternoon slot';
+    } else if (hour >= 8 && hour <= 18) {
+      reason = 'Placed during regular work hours';
+    } else {
+      reason = 'Scheduled at available time';
+    }
+    
+    // Add context from metadata
+    if (context?.metadata?.['isOptimalSlot']) {
+      reason += ', first choice time';
+    } else {
+      reason += ', best available option';
+    }
+    
+    // Add conflict avoidance note
+    if (context?.trigger === 'conflict_avoid') {
+      reason += ' (avoided existing events)';
+    }
+    
+    return reason;
   }
 
   /**
@@ -181,8 +253,8 @@ export class CalendarActivityAnnouncerService {
     }
     
     // Add benefit context based on metadata
-    if (context.metadata?.batchSize) {
-      reason += ` to accommodate ${context.metadata.batchSize} new events`;
+    if (context.metadata?.['batchSize']) {
+      reason += ` to accommodate ${context.metadata['batchSize']} new events`;
     }
     
     return reason;

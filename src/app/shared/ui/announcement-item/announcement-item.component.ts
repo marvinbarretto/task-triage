@@ -134,6 +134,9 @@ import { CalendarAnnouncement } from '../../data-access/services/calendar-activi
       color: #1f2937;
       line-height: 1.4;
       flex: 1;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      max-width: calc(100% - 3rem); /* Account for time column */
     }
 
     .announcement-time {
@@ -149,10 +152,14 @@ import { CalendarAnnouncement } from '../../data-access/services/calendar-activi
       color: #6b7280;
       line-height: 1.4;
       font-style: italic;
-      padding: 0.375rem 0.5rem;
+      padding: 0.5rem 0.75rem;
       background: rgba(0, 0, 0, 0.02);
-      border-radius: 4px;
+      border-radius: 6px;
       border: 1px solid rgba(0, 0, 0, 0.05);
+      margin-top: 0.125rem;
+      max-width: none;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
 
     .announcement-context {
@@ -208,14 +215,35 @@ import { CalendarAnnouncement } from '../../data-access/services/calendar-activi
       .announcement-header {
         flex-direction: column;
         gap: 0.25rem;
+        align-items: flex-start;
       }
       
       .announcement-message {
         font-size: 0.8125rem;
+        max-width: 100%;
+        padding-right: 0;
+      }
+      
+      .announcement-time {
+        align-self: flex-start;
+        margin-top: 0.125rem;
+      }
+      
+      .announcement-details {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.5rem;
       }
       
       .announcement-context {
         font-size: 0.6875rem;
+        gap: 0.125rem;
+      }
+      
+      .context-source,
+      .context-trigger,
+      .context-reason {
+        display: inline;
+        white-space: nowrap;
       }
     }
   `]
