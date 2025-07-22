@@ -1,10 +1,10 @@
-export interface LifestyleTagConfig {
+export interface EventTagConfig {
   emoji: string;
   label: string;
   color: string;
 }
 
-export const LIFESTYLE_TAG_COLORS: Record<string, LifestyleTagConfig> = {
+export const EVENT_TAG_COLORS: Record<string, EventTagConfig> = {
   'fitness': { emoji: '🏃‍♀️', label: 'Fitness', color: '#ef4444' },
   'nutrition': { emoji: '🍎', label: 'Nutrition', color: '#22c55e' },
   'mental-health': { emoji: '🧠', label: 'Mental Health', color: '#8b5cf6' },

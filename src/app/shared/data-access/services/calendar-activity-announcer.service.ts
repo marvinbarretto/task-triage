@@ -1,6 +1,32 @@
 import { Injectable, signal } from '@angular/core';
 import { Event, CalendarEvent } from '../models/event.model';
 
+export type AnnouncementSource = 
+  | 'drag_drop' 
+  | 'form_submit' 
+  | 'bulk_import' 
+  | 'smart_scheduling' 
+  | 'calendar_click' 
+  | 'quick_add' 
+  | 'template' 
+  | 'conflict_resolution';
+
+export type AnnouncementTrigger = 
+  | 'user_action' 
+  | 'auto_schedule' 
+  | 'conflict_avoid' 
+  | 'time_preference' 
+  | 'optimization' 
+  | 'random_placement';
+
+export interface AnnouncementContext {
+  source?: AnnouncementSource;
+  trigger?: AnnouncementTrigger;
+  location?: string; // e.g., 'calendar-cell-9am-monday', 'sidebar-form', 'bulk-import-dialog'
+  reason?: string; // Detailed explanation of why this happened
+  metadata?: Record<string, any>; // Additional context-specific data
+}
+
 export interface CalendarAnnouncement {
   id: string;
   type: 'added' | 'moved' | 'removed' | 'updated' | 'rescheduled';
@@ -9,6 +35,13 @@ export interface CalendarAnnouncement {
   eventTitle?: string;
   details?: string;
   icon?: string;
+  
+  // Enhanced context fields
+  source?: AnnouncementSource;
+  trigger?: AnnouncementTrigger;
+  location?: string;
+  reason?: string;
+  metadata?: Record<string, any>;
 }
 
 @Injectable({
@@ -28,30 +61,79 @@ export class CalendarActivityAnnouncerService {
   /**
    * Announce when an event has been added to the calendar
    */
-  announceEventAdded(event: Event, method?: string): void {
+  announceEventAdded(event: Event, context?: AnnouncementContext): void {
+    let message = `Added "${event.title}" to your calendar`;
+    let details = context?.reason;
+    
+    // Generate more specific message based on context
+    if (context?.source === 'drag_drop') {
+      message = `📅 Dragged "${event.title}" to calendar`;
+    } else if (context?.source === 'smart_scheduling') {
+      message = `🧠 AI scheduled "${event.title}"`;
+    } else if (context?.source === 'quick_add') {
+      message = `⚡ Quick-added "${event.title}"`;
+    } else {
+      message = `📅 ${message}`;
+    }
+
     const announcement: CalendarAnnouncement = {
       id: `announcement_${++this.announcementCounter}`,
       type: 'added',
-      message: `📅 Added "${event.title}" to your calendar`,
+      message,
       timestamp: new Date(),
       eventTitle: event.title,
-      details: method ? `Added via ${method}` : undefined,
-      icon: '✅'
+      details,
+      icon: '✅',
+      source: context?.source,
+      trigger: context?.trigger,
+      location: context?.location,
+      reason: context?.reason,
+      metadata: context?.metadata
     };
 
     this.addAnnouncement(announcement);
   }
 
   /**
+   * Legacy method for backward compatibility
+   */
+  announceEventAddedLegacy(event: Event, method?: string): void {
+    const context: AnnouncementContext = {
+      source: method === 'drag and drop' ? 'drag_drop' : 
+              method === 'form' ? 'form_submit' : 
+              undefined,
+      trigger: 'user_action',
+      reason: method ? `Added via ${method}` : undefined
+    };
+    
+    this.announceEventAdded(event, context);
+  }
+
+  /**
    * Announce when an event has been moved to make room for another
    */
-  announceEventMoved(event: Event | CalendarEvent, reason: string, fromTime?: Date, toTime?: Date): void {
-    let message = `🔄 Moved "${event.title}"`;
+  announceEventMoved(event: Event | CalendarEvent, context: AnnouncementContext & { reason: string }, fromTime?: Date, toTime?: Date): void {
+    let message: string;
+    let details: string;
     
     if (fromTime && toTime) {
-      const fromTimeStr = fromTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const toTimeStr = toTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      message += ` (${fromTimeStr} → ${toTimeStr})`;
+      const fromTimeStr = fromTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      const toTimeStr = toTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      
+      // More specific messaging based on context
+      if (context.trigger === 'conflict_avoid') {
+        message = `🔄 Moved "${event.title}" from ${fromTimeStr} to ${toTimeStr}`;
+        details = this.getMovementReason(fromTime, toTime, context);
+      } else if (context.trigger === 'optimization') {
+        message = `⚡ Rescheduled "${event.title}" to ${toTimeStr}`;
+        details = `From ${fromTimeStr}. ${context.reason}`;
+      } else {
+        message = `🔄 Moved "${event.title}" (${fromTimeStr} → ${toTimeStr})`;
+        details = context.reason;
+      }
+    } else {
+      message = `🔄 Moved "${event.title}"`;
+      details = context.reason;
     }
 
     const announcement: CalendarAnnouncement = {
@@ -60,11 +142,63 @@ export class CalendarActivityAnnouncerService {
       message,
       timestamp: new Date(),
       eventTitle: event.title,
-      details: reason,
-      icon: '🔄'
+      details,
+      icon: '🔄',
+      source: context.source,
+      trigger: context.trigger,
+      location: context.location,
+      reason: context.reason,
+      metadata: {
+        ...context.metadata,
+        fromTime: fromTime?.toISOString(),
+        toTime: toTime?.toISOString(),
+        timeDifference: fromTime && toTime ? toTime.getTime() - fromTime.getTime() : undefined
+      }
     };
 
     this.addAnnouncement(announcement);
+  }
+
+  /**
+   * Generate a more descriptive reason for why an event was moved
+   */
+  private getMovementReason(fromTime: Date, toTime: Date, context: AnnouncementContext): string {
+    const timeDiff = toTime.getTime() - fromTime.getTime();
+    const minutes = Math.abs(timeDiff / (1000 * 60));
+    const direction = timeDiff > 0 ? 'later' : 'earlier';
+    
+    let reason = context.reason || 'to avoid scheduling conflicts';
+    
+    // Add time context
+    if (minutes < 60) {
+      reason += ` (${Math.round(minutes)} minutes ${direction})`;
+    } else if (minutes < 24 * 60) {
+      const hours = Math.round(minutes / 60);
+      reason += ` (${hours} hour${hours > 1 ? 's' : ''} ${direction})`;
+    } else {
+      const days = Math.round(minutes / (24 * 60));
+      reason += ` (${days} day${days > 1 ? 's' : ''} ${direction})`;
+    }
+    
+    // Add benefit context based on metadata
+    if (context.metadata?.batchSize) {
+      reason += ` to accommodate ${context.metadata.batchSize} new events`;
+    }
+    
+    return reason;
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   */
+  announceEventMovedLegacy(event: Event | CalendarEvent, reason: string, fromTime?: Date, toTime?: Date): void {
+    const context: AnnouncementContext & { reason: string } = {
+      source: 'conflict_resolution',
+      trigger: 'auto_schedule',
+      reason
+    };
+    
+    this.announceEventMoved(event, context, fromTime, toTime);
   }
 
   /**
@@ -88,17 +222,114 @@ export class CalendarActivityAnnouncerService {
   /**
    * Announce when multiple events have been added in batch
    */
-  announceBatchEventsAdded(events: Event[], source: string): void {
+  announceBatchEventsAdded(events: Event[], context: AnnouncementContext): void {
+    const eventNames = events.map(e => e.title);
+    const displayedNames = eventNames.slice(0, 3);
+    const remainingCount = eventNames.length - 3;
+    
+    // Create a more specific message based on context
+    let message: string;
+    let details: string;
+    
+    if (context.source === 'smart_scheduling') {
+      const timeContext = this.getTimeContextForEvents(events);
+      message = `🧠 AI scheduled ${displayedNames.join(', ')}${remainingCount > 0 ? ` and ${remainingCount} more` : ''}`;
+      details = `${timeContext}. ${context.reason || 'Optimized for your schedule and preferences'}`;
+    } else if (context.source === 'bulk_import') {
+      message = `📥 Imported ${displayedNames.join(', ')}${remainingCount > 0 ? ` and ${remainingCount} more` : ''}`;
+      details = `From ${context.reason || 'import file'}`;
+    } else {
+      message = `🎯 Added ${displayedNames.join(', ')}${remainingCount > 0 ? ` and ${remainingCount} more` : ''}`;
+      details = context.reason || `Batch creation of ${events.length} events`;
+    }
+
     const announcement: CalendarAnnouncement = {
       id: `announcement_${++this.announcementCounter}`,
       type: 'added',
-      message: `🎯 Added ${events.length} events from ${source}`,
+      message,
       timestamp: new Date(),
-      details: `Events: ${events.map(e => e.title).join(', ')}`,
-      icon: '🎯'
+      details,
+      icon: context.source === 'smart_scheduling' ? '🧠' : '🎯',
+      source: context.source,
+      trigger: context.trigger,
+      location: context.location,
+      reason: context.reason,
+      metadata: { 
+        ...context.metadata, 
+        eventCount: events.length, 
+        eventTitles: eventNames,
+        displayedNames,
+        hiddenCount: remainingCount
+      }
     };
 
     this.addAnnouncement(announcement);
+  }
+
+  /**
+   * Generate time context description for a set of events
+   */
+  private getTimeContextForEvents(events: Event[]): string {
+    if (events.length === 0) return '';
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    
+    let todayCount = 0;
+    let tomorrowCount = 0;
+    let futureCount = 0;
+    let morningCount = 0;
+    let afternoonCount = 0;
+    
+    events.forEach(event => {
+      const eventDate = new Date(event.startDate);
+      const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+      
+      if (eventDay.getTime() === today.getTime()) {
+        todayCount++;
+      } else if (eventDay.getTime() === tomorrow.getTime()) {
+        tomorrowCount++;
+      } else {
+        futureCount++;
+      }
+      
+      const hour = eventDate.getHours();
+      if (hour < 12) {
+        morningCount++;
+      } else {
+        afternoonCount++;
+      }
+    });
+    
+    const timeParts: string[] = [];
+    
+    if (todayCount > 0) timeParts.push(`${todayCount} for today`);
+    if (tomorrowCount > 0) timeParts.push(`${tomorrowCount} for tomorrow`);
+    if (futureCount > 0) timeParts.push(`${futureCount} for later`);
+    
+    const dayContext = timeParts.join(', ');
+    
+    const timeOfDayParts: string[] = [];
+    if (morningCount > 0) timeOfDayParts.push(`${morningCount} morning`);
+    if (afternoonCount > 0) timeOfDayParts.push(`${afternoonCount} afternoon`);
+    
+    const timeOfDayContext = timeOfDayParts.join(', ');
+    
+    return `${dayContext}${timeOfDayContext ? ` (${timeOfDayContext})` : ''}`;
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   */
+  announceBatchEventsAddedLegacy(events: Event[], source: string): void {
+    const context: AnnouncementContext = {
+      source: source === 'import' ? 'bulk_import' : 'bulk_import',
+      trigger: 'user_action',
+      reason: source
+    };
+    
+    this.announceBatchEventsAdded(events, context);
   }
 
   /**

@@ -1,13 +1,14 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EventCard, EventType, SchedulingFlexibility, EventPriority } from '@shared/data-access/models/event.model';
 import { EventTypeBadgeComponent } from '@shared/ui/event-type-badge/event-type-badge.component';
 import { EventDetailsListComponent, EventDetailItem } from '@shared/ui/event-details-list/event-details-list.component';
-import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags.component';
+import { EventTagsComponent } from '@shared/ui/event-tags/event-tags.component';
+import { EventTagsService } from '@shared/data-access/services/event-tags.service';
 
 @Component({
   selector: 'app-event-card',
-  imports: [CommonModule, EventTypeBadgeComponent, EventDetailsListComponent, LifestyleTagsComponent],
+  imports: [CommonModule, EventTypeBadgeComponent, EventDetailsListComponent, EventTagsComponent],
   template: `
     <div 
       class="event-card"
@@ -75,10 +76,10 @@ import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags
              title="Click to edit description">{{card.extractedDescription}}</p>
         }
 
-        <app-lifestyle-tags 
-          [tags]="getLifestyleTags()" 
+        <app-event-tags 
+          [tags]="eventTags()" 
           [compact]="true">
-        </app-lifestyle-tags>
+        </app-event-tags>
 
         <app-event-details-list 
           [details]="getEventDetails()"
@@ -522,9 +523,12 @@ import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags
     }
   `]
 })
-export class EventCardComponent {
+export class EventCardComponent implements OnInit, OnChanges {
   @Input() card!: EventCard;
   @Input() isSelected = false;
+
+  private eventTagsService = inject(EventTagsService);
+  eventTags = signal<string[]>([]);
 
   @Output() cardClick = new EventEmitter<void>();
   @Output() customizeClick = new EventEmitter<void>();
@@ -630,12 +634,31 @@ export class EventCardComponent {
     });
   }
 
-  getLifestyleTags(): string[] {
-    return LifestyleTagsComponent.generateTagsFromContent(
-      this.card.extractedTitle,
-      this.card.extractedDescription || '',
-      this.card.suggestedType
-    );
+  async ngOnInit() {
+    await this.loadEventTags();
+  }
+
+  async ngOnChanges(changes: SimpleChanges) {
+    // Reload tags when card data changes
+    if (changes['card'] && this.card) {
+      await this.loadEventTags();
+    }
+  }
+
+  private async loadEventTags() {
+    if (!this.card) return;
+    
+    try {
+      const tags = await this.eventTagsService.generateTagsFromContent(
+        this.card.extractedTitle,
+        this.card.extractedDescription || '',
+        this.card.suggestedType
+      );
+      this.eventTags.set(tags);
+    } catch (error) {
+      console.warn('[EventCardComponent] Failed to generate tags, using fallback:', error);
+      this.eventTags.set(['general']);
+    }
   }
 
   getEventDetails(): EventDetailItem[] {

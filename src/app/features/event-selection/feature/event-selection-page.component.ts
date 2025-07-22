@@ -5,7 +5,7 @@ import { ReactiveFormsModule, FormControl, FormBuilder, Validators } from '@angu
 import { CalendarSessionStore } from '@shared/data-access/stores/calendar-session.store';
 import { CalendarService } from '@shared/data-access/services/calendar.service';
 import { LLMEventService } from '@shared/data-access/services/llm-event.service';
-import { CalendarActivityAnnouncerService } from '@shared/data-access/services/calendar-activity-announcer.service';
+import { CalendarActivityAnnouncerService, AnnouncementContext } from '@shared/data-access/services/calendar-activity-announcer.service';
 import { EventCard, Event, CalendarEvent } from '@shared/data-access/models/event.model';
 import { MainPageState } from '@shared/data-access/models/session.model';
 import { EventCardsGridComponent } from '../ui/event-cards-grid.component';
@@ -672,8 +672,19 @@ Call mom this weekend to discuss holiday plans`;
       // Add to calendar store
       this.calendarStore.addEventToCalendar(newEvent);
       
-      // Announce the event addition
-      this.activityAnnouncer.announceEventAdded(newEvent, 'drag-and-drop');
+      // Announce the event addition with enhanced context
+      const context: AnnouncementContext = {
+        source: 'drag_drop',
+        trigger: 'user_action',
+        location: 'calendar-drop-zone',
+        reason: 'User dragged event card to calendar',
+        metadata: { 
+          cardId: card.id,
+          cardConfidence: card.confidence,
+          targetDate: newEvent.startDate.toISOString()
+        }
+      };
+      this.activityAnnouncer.announceEventAdded(newEvent, context);
       
       console.log('✅ [EventSelection] Event successfully added to calendar store!');
       console.log('🎆 [EventSelection] Event creation completed successfully!');
@@ -713,8 +724,19 @@ Call mom this weekend to discuss holiday plans`;
       // Add to calendar store
       this.calendarStore.addEventToCalendar(newEvent);
       
-      // Announce the event addition
-      this.activityAnnouncer.announceEventAdded(newEvent, 'manual selection');
+      // Announce the event addition with enhanced context
+      const manualContext: AnnouncementContext = {
+        source: 'form_submit',
+        trigger: 'user_action',
+        location: 'event-card-customize-button',
+        reason: 'User clicked customize and manually added event',
+        metadata: { 
+          cardId: selectedCard.id,
+          cardConfidence: selectedCard.confidence,
+          customizations: 'User provided specific time/date'
+        }
+      };
+      this.activityAnnouncer.announceEventAdded(newEvent, manualContext);
       
       console.log('[EventSelection] Event created and added to calendar:', newEvent);
       
@@ -917,8 +939,24 @@ Call mom this weekend to discuss holiday plans`;
         this.calendarStore.addEventToCalendar(newEvent);
         createdEvents.push(newEvent);
 
-        // Announce individual event addition
-        this.activityAnnouncer.announceEventAdded(newEvent, 'auto-add');
+        // Announce individual event addition with enhanced context
+        const timeSlotReason = originalSlot.getTime() === currentSlot.getTime() ? 
+          'Scheduled at optimal time slot' : 
+          'Scheduled after finding available time slot';
+        
+        const autoContext: AnnouncementContext = {
+          source: 'smart_scheduling',
+          trigger: 'auto_schedule',
+          location: 'auto-add-all-button',
+          reason: timeSlotReason,
+          metadata: { 
+            cardId: card.id,
+            slotTime: currentSlot.toISOString(),
+            isOptimalSlot: originalSlot.getTime() === currentSlot.getTime(),
+            cardIndex: createdEvents.length
+          }
+        };
+        this.activityAnnouncer.announceEventAdded(newEvent, autoContext);
 
         // Move to next slot (add 15 minute buffer)
         currentSlot = new Date(currentSlot.getTime() + (card.suggestedDurationMinutes || 50) * 60 * 1000 + 15 * 60 * 1000);
@@ -926,12 +964,35 @@ Call mom this weekend to discuss holiday plans`;
 
       // Announce batch operation
       if (createdEvents.length > 1) {
-        this.activityAnnouncer.announceBatchEventsAdded(createdEvents, 'line-based parsing');
+        const batchContext: AnnouncementContext = {
+          source: 'smart_scheduling',
+          trigger: 'auto_schedule',
+          location: 'auto-add-all-button',
+          reason: 'Batch creation from multiple event cards using smart scheduling',
+          metadata: {
+            totalEvents: createdEvents.length,
+            parseMethod: 'line-based parsing',
+            allSuccessful: true
+          }
+        };
+        this.activityAnnouncer.announceBatchEventsAdded(createdEvents, batchContext);
       }
 
       // Announce any events that were moved
       movedEvents.forEach(({event, oldTime, newTime}) => {
-        this.activityAnnouncer.announceEventMoved(event, 'to accommodate new events', oldTime, newTime);
+        const moveContext: AnnouncementContext & { reason: string } = {
+          source: 'smart_scheduling',
+          trigger: 'conflict_avoid',
+          location: 'auto-add-all-conflicts',
+          reason: 'Moved to accommodate new batch of events',
+          metadata: {
+            movedFromTime: oldTime.toISOString(),
+            movedToTime: newTime.toISOString(),
+            totalMovedEvents: movedEvents.length,
+            batchSize: cards.length
+          }
+        };
+        this.activityAnnouncer.announceEventMoved(event, moveContext, oldTime, newTime);
       });
 
       // Announce smart scheduling decision

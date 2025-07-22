@@ -1,13 +1,14 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Event } from '@shared/data-access/models/event.model';
 import { EventTypeBadgeComponent } from '@shared/ui/event-type-badge/event-type-badge.component';
 import { EventDetailsListComponent, EventDetailItem } from '@shared/ui/event-details-list/event-details-list.component';
-import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags.component';
+import { EventTagsComponent } from '@shared/ui/event-tags/event-tags.component';
+import { EventTagsService } from '@shared/data-access/services/event-tags.service';
 
 @Component({
   selector: 'app-event-details-overlay',
-  imports: [CommonModule, EventTypeBadgeComponent, EventDetailsListComponent, LifestyleTagsComponent],
+  imports: [CommonModule, EventTypeBadgeComponent, EventDetailsListComponent, EventTagsComponent],
   template: `
     @if (isVisible && event) {
       <div class="overlay-backdrop" (click)="onBackdropClick($event)">
@@ -39,10 +40,10 @@ import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags
             </div>
             
             <div class="tags-section">
-              <app-lifestyle-tags 
-                [tags]="getLifestyleTags()" 
+              <app-event-tags 
+                [tags]="eventTags()" 
                 [compact]="false">
-              </app-lifestyle-tags>
+              </app-event-tags>
             </div>
             
             <div class="metadata-section">
@@ -229,9 +230,12 @@ import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags
     }
   `]
 })
-export class EventDetailsOverlayComponent {
+export class EventDetailsOverlayComponent implements OnInit, OnChanges {
   @Input() event: Event | null = null;
   @Input() isVisible = false;
+
+  private eventTagsService = inject(EventTagsService);
+  eventTags = signal<string[]>([]);
   
   @Output() close = new EventEmitter<void>();
 
@@ -284,14 +288,34 @@ export class EventDetailsOverlayComponent {
     return details;
   }
 
-  getLifestyleTags(): string[] {
-    if (!this.event) return [];
+  async ngOnInit() {
+    await this.loadEventTags();
+  }
 
-    return LifestyleTagsComponent.generateTagsFromContent(
-      this.event.title,
-      this.event.description || '',
-      this.event.type
-    );
+  async ngOnChanges(changes: SimpleChanges) {
+    // Reload tags when event data changes
+    if (changes['event'] && this.event) {
+      await this.loadEventTags();
+    }
+  }
+
+  private async loadEventTags() {
+    if (!this.event) {
+      this.eventTags.set([]);
+      return;
+    }
+    
+    try {
+      const tags = await this.eventTagsService.generateTagsFromContent(
+        this.event.title,
+        this.event.description || '',
+        this.event.type
+      );
+      this.eventTags.set(tags);
+    } catch (error) {
+      console.warn('[EventDetailsOverlayComponent] Failed to generate tags, using fallback:', error);
+      this.eventTags.set(['general']);
+    }
   }
 
   formatDateTime(date: Date): string {
