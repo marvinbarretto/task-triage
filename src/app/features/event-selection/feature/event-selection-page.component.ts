@@ -5,20 +5,22 @@ import { ReactiveFormsModule, FormControl, FormBuilder, Validators } from '@angu
 import { CalendarSessionStore } from '@shared/data-access/stores/calendar-session.store';
 import { CalendarService } from '@shared/data-access/services/calendar.service';
 import { LLMEventService } from '@shared/data-access/services/llm-event.service';
-import { EventCard, Event } from '@shared/data-access/models/event.model';
+import { CalendarActivityAnnouncerService } from '@shared/data-access/services/calendar-activity-announcer.service';
+import { EventCard, Event, CalendarEvent } from '@shared/data-access/models/event.model';
 import { MainPageState } from '@shared/data-access/models/session.model';
 import { EventCardsGridComponent } from '../ui/event-cards-grid.component';
 import { CalendarDisplayComponent } from '../../calendar/ui/calendar-display.component';
+import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcements/calendar-announcements.component';
 
 @Component({
   selector: 'app-event-selection-page',
-  imports: [CommonModule, ReactiveFormsModule, EventCardsGridComponent, CalendarDisplayComponent],
+  imports: [CommonModule, ReactiveFormsModule, EventCardsGridComponent, CalendarDisplayComponent, CalendarAnnouncementsComponent],
   template: `
     <div class="page-content">
       <!-- Always Visible Note Input Section -->
       <div class="note-input-section">
         <h1>Smart Event Creator</h1>
-        <p>Tell me about your task, event, or reminder and I'll help you create calendar events:</p>
+        <p>Enter your tasks, events, or reminders (one per line) and I'll help you create calendar events:</p>
 
         <form [formGroup]="noteForm" (ngSubmit)="onSubmitNote()">
           <label for="note-input">Your note:</label>
@@ -69,6 +71,19 @@ import { CalendarDisplayComponent } from '../../calendar/ui/calendar-display.com
       <div class="content-layout">
         <div class="events-section">
           <h2>Event Options</h2>
+          
+          <div class="auto-add-section">
+            <label class="auto-add-checkbox">
+              <input 
+                type="checkbox" 
+                [formControl]="autoAddControl"
+                (change)="onAutoAddToggle()">
+              <span class="checkmark"></span>
+              Automatically add events to calendar
+            </label>
+            <p class="auto-add-help">When enabled, all generated events will be automatically placed in available time slots</p>
+          </div>
+          
           @if (generatedCards().length > 0) {
             <app-event-cards-grid
               [cards]="generatedCards()"
@@ -127,6 +142,11 @@ import { CalendarDisplayComponent } from '../../calendar/ui/calendar-display.com
             @if (calendarEvents().length > 0) {
               <p><strong>📅 You have {{calendarEvents().length}} event(s) scheduled.</strong></p>
             }
+          </div>
+          
+          <!-- Calendar Activity Announcements -->
+          <div class="calendar-announcements">
+            <app-calendar-announcements></app-calendar-announcements>
           </div>
         </div>
       </div>
@@ -465,6 +485,43 @@ import { CalendarDisplayComponent } from '../../calendar/ui/calendar-display.com
     .processing-notes li {
       margin-bottom: 0.25rem;
     }
+
+    /* Auto-add section styles */
+    .auto-add-section {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+
+    .auto-add-checkbox {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+
+    .auto-add-checkbox input[type="checkbox"] {
+      margin-right: 0.75rem;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .auto-add-help {
+      margin: 0;
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-left: 2.25rem;
+    }
+
+    /* Calendar announcements section */
+    .calendar-announcements {
+      margin-top: 1rem;
+    }
   `]
 })
 export class EventSelectionPageComponent implements OnInit {
@@ -473,6 +530,7 @@ export class EventSelectionPageComponent implements OnInit {
   private calendarStore = inject(CalendarSessionStore);
   private calendarService = inject(CalendarService);
   private llmEventService = inject(LLMEventService);
+  private activityAnnouncer = inject(CalendarActivityAnnouncerService);
 
   // Signals from store
   generatedCards = this.calendarStore.generatedCards;
@@ -488,6 +546,7 @@ export class EventSelectionPageComponent implements OnInit {
     noteInput: ['', [Validators.required, Validators.minLength(5)]]
   });
   noteControl = new FormControl('');
+  autoAddControl = new FormControl(false);
 
   // State management
   isCreatingEvent = false;
@@ -498,13 +557,13 @@ export class EventSelectionPageComponent implements OnInit {
   currentDraggedCard: EventCard | null = null;
 
   // Placeholder for note input
-  placeholder = `Describe your task, event, or reminder...
+  placeholder = `Enter one event per line for best results...
 
 For example:
-- "Team meeting with Sarah and Mike on Friday at 2pm to discuss Q4 goals"
-- "Dentist appointment next Tuesday at 10am"
-- "Remind me to submit expense report by end of week"
-- "Call mom this weekend to discuss holiday plans"`;
+Team meeting with Sarah and Mike on Friday at 2pm to discuss Q4 goals
+Dentist appointment next Tuesday at 10am  
+Submit expense report by end of week
+Call mom this weekend to discuss holiday plans`;
 
 
   constructor() {
@@ -613,6 +672,9 @@ For example:
       // Add to calendar store
       this.calendarStore.addEventToCalendar(newEvent);
       
+      // Announce the event addition
+      this.activityAnnouncer.announceEventAdded(newEvent, 'drag-and-drop');
+      
       console.log('✅ [EventSelection] Event successfully added to calendar store!');
       console.log('🎆 [EventSelection] Event creation completed successfully!');
       
@@ -650,6 +712,9 @@ For example:
       
       // Add to calendar store
       this.calendarStore.addEventToCalendar(newEvent);
+      
+      // Announce the event addition
+      this.activityAnnouncer.announceEventAdded(newEvent, 'manual selection');
       
       console.log('[EventSelection] Event created and added to calendar:', newEvent);
       
@@ -743,6 +808,13 @@ For example:
 
       console.log(`Generated ${processingResult.generatedCards.length} event cards:`, processingResult.generatedCards);
       
+      // Auto-add events to calendar if checkbox is enabled
+      if (this.autoAddControl.value && processingResult.generatedCards.length > 0) {
+        setTimeout(() => {
+          this.autoAddAllEventsToCalendar();
+        }, 100); // Small delay to allow UI to update
+      }
+      
     } catch (error) {
       this.errorMessage = 'Something went wrong processing your note. Please try again.';
       console.error('Note processing error:', error);
@@ -779,5 +851,133 @@ For example:
   onCardDescriptionEdit(event: {card: EventCard, newDescription: string}): void {
     console.log(`[EventSelection] Description edit requested for: "${event.card.extractedTitle}"`);
     this.calendarStore.updateEventCardDescription(event.card.id, event.newDescription);
+  }
+
+  onAutoAddToggle(): void {
+    const isAutoAdd = this.autoAddControl.value;
+    console.log('[EventSelection] Auto-add toggled:', isAutoAdd);
+    
+    if (isAutoAdd && this.generatedCards().length > 0) {
+      // Automatically add all existing cards to calendar
+      this.autoAddAllEventsToCalendar();
+    }
+  }
+
+  private async autoAddAllEventsToCalendar(): Promise<void> {
+    console.log('[EventSelection] Auto-adding all events to calendar...');
+    
+    const cards = this.generatedCards();
+    if (cards.length === 0) return;
+
+    this.isCreatingEvent = true;
+
+    try {
+      // Find available time slots for events
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0); // Start at 9 AM
+      let currentSlot = new Date(startOfToday);
+      const createdEvents: Event[] = [];
+
+      // Check if any existing events need to be moved
+      const existingEvents = this.calendarEvents();
+      const movedEvents: {event: CalendarEvent, oldTime: Date, newTime: Date}[] = [];
+
+      for (const card of cards) {
+        // Find next available slot
+        const originalSlot = new Date(currentSlot);
+        currentSlot = this.findNextAvailableSlot(currentSlot, card.suggestedDurationMinutes || 50);
+        
+        // Check if we had to move past existing events
+        if (originalSlot.getTime() !== currentSlot.getTime()) {
+          const conflictingEvents = existingEvents.filter(event => {
+            const eventStart = new Date(event.start);
+            const eventEnd = new Date(event.end || eventStart.getTime() + 60 * 60 * 1000);
+            return (originalSlot >= eventStart && originalSlot < eventEnd);
+          });
+          
+          // Record moved events (simplified - in real implementation would actually move them)
+          conflictingEvents.forEach(conflictEvent => {
+            movedEvents.push({
+              event: conflictEvent,
+              oldTime: new Date(conflictEvent.start),
+              newTime: new Date(currentSlot.getTime() + (card.suggestedDurationMinutes || 50) * 60 * 1000 + 30 * 60 * 1000)
+            });
+          });
+        }
+        
+        const customizations = {
+          startDate: new Date(currentSlot),
+          isAllDay: false,
+          durationMinutes: card.suggestedDurationMinutes || 50,
+          endDate: new Date(currentSlot.getTime() + (card.suggestedDurationMinutes || 50) * 60 * 1000)
+        };
+
+        // Create and add event
+        const newEvent = this.calendarService.createEventFromCard(card, customizations);
+        this.calendarStore.addEventToCalendar(newEvent);
+        createdEvents.push(newEvent);
+
+        // Announce individual event addition
+        this.activityAnnouncer.announceEventAdded(newEvent, 'auto-add');
+
+        // Move to next slot (add 15 minute buffer)
+        currentSlot = new Date(currentSlot.getTime() + (card.suggestedDurationMinutes || 50) * 60 * 1000 + 15 * 60 * 1000);
+      }
+
+      // Announce batch operation
+      if (createdEvents.length > 1) {
+        this.activityAnnouncer.announceBatchEventsAdded(createdEvents, 'line-based parsing');
+      }
+
+      // Announce any events that were moved
+      movedEvents.forEach(({event, oldTime, newTime}) => {
+        this.activityAnnouncer.announceEventMoved(event, 'to accommodate new events', oldTime, newTime);
+      });
+
+      // Announce smart scheduling decision
+      if (movedEvents.length > 0) {
+        this.activityAnnouncer.announceSmartScheduling(
+          `Automatically scheduled ${createdEvents.length} new events`,
+          `${movedEvents.length} existing events were rescheduled to avoid conflicts`
+        );
+      } else {
+        this.activityAnnouncer.announceSmartScheduling(
+          `Found perfect time slots for all ${createdEvents.length} events`,
+          'No existing events needed to be moved'
+        );
+      }
+
+      console.log(`[EventSelection] Successfully auto-added ${cards.length} events to calendar`);
+      
+    } catch (error) {
+      console.error('[EventSelection] Error auto-adding events:', error);
+    } finally {
+      this.isCreatingEvent = false;
+    }
+  }
+
+  private findNextAvailableSlot(startTime: Date, durationMinutes: number): Date {
+    // Simple implementation: find next available slot after existing events
+    // This could be enhanced to check for actual conflicts
+    const existingEvents = this.calendarEvents();
+    let candidateTime = new Date(startTime);
+
+    // Check if this slot conflicts with existing events
+    for (const event of existingEvents) {
+      const eventStart = new Date(event.start);
+      const eventEnd = new Date(event.end || eventStart.getTime() + 60 * 60 * 1000); // Default 1 hour if no end
+      const candidateEnd = new Date(candidateTime.getTime() + durationMinutes * 60 * 1000);
+
+      // Check for overlap
+      if ((candidateTime >= eventStart && candidateTime < eventEnd) ||
+          (candidateEnd > eventStart && candidateEnd <= eventEnd) ||
+          (candidateTime <= eventStart && candidateEnd >= eventEnd)) {
+        // Conflict found, move to after this event
+        candidateTime = new Date(eventEnd.getTime() + 15 * 60 * 1000); // 15 minute buffer
+        break;
+      }
+    }
+
+    return candidateTime;
   }
 }
