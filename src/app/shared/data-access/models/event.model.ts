@@ -1,5 +1,19 @@
 export type EventType = 'meeting' | 'task' | 'reminder' | 'appointment' | 'deadline' | 'personal' | 'work';
 
+export type SchedulingFlexibility = 'fixed' | 'morning_flexible' | 'afternoon_flexible' | 'anytime';
+
+export type RepetitionType = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+
+export type EventPriority = 'low' | 'medium' | 'high' | 'critical';
+
+export interface RepetitionPattern {
+  type: RepetitionType;
+  frequency?: number; // e.g., every 2 weeks
+  daysOfWeek?: number[]; // 0-6, Sunday = 0
+  endDate?: Date;
+  maxOccurrences?: number;
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -30,6 +44,16 @@ export interface EventCard {
   confidence: number;
   reasoning: string;
   isSelected: boolean;
+  
+  // Enhanced characteristics
+  schedulingFlexibility: SchedulingFlexibility;
+  priority: EventPriority;
+  isUrgent: boolean;
+  templatePotential: boolean;
+  templateCategory?: string; // e.g., 'weekly-meeting', 'monthly-review'
+  repetitionPattern: RepetitionPattern;
+  estimatedPreparationTime?: number; // minutes needed to prepare
+  canBeMovedIfNeeded: boolean;
 }
 
 export interface EventProcessingResult {

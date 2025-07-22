@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EventCard, EventType } from '@shared/data-access/models/event.model';
+import { EventCard, EventType, SchedulingFlexibility, EventPriority } from '@shared/data-access/models/event.model';
 import { EventTypeBadgeComponent } from '@shared/ui/event-type-badge/event-type-badge.component';
 import { EventDetailsListComponent, EventDetailItem } from '@shared/ui/event-details-list/event-details-list.component';
 import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags.component';
@@ -23,9 +23,34 @@ import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags
       (dragend)="onDragEnd($event)">
       
       <div class="card-header">
-        <app-event-type-badge [type]="card.suggestedType"></app-event-type-badge>
+        <div class="header-left">
+          <app-event-type-badge [type]="card.suggestedType"></app-event-type-badge>
+          <div class="characteristics-row">
+            <div class="scheduling-indicator" [class]="getSchedulingFlexibilityClass()" [title]="getSchedulingFlexibilityTooltip()">
+              {{getSchedulingFlexibilityIcon()}}
+            </div>
+            @if (card.templatePotential) {
+              <div class="template-indicator" title="Can be saved as template">
+                📋
+              </div>
+            }
+            @if (card.repetitionPattern.type !== 'none') {
+              <div class="repetition-indicator" [title]="getRepetitionTooltip()">
+                🔄
+              </div>
+            }
+            @if (card.isUrgent) {
+              <div class="urgency-indicator" title="Urgent">
+                ⚡
+              </div>
+            }
+          </div>
+        </div>
         
         <div class="header-right">
+          <div class="priority-badge" [class]="getPriorityClass()">
+            {{getPriorityLabel()}}
+          </div>
           <div class="confidence-badge" [class]="getConfidenceClass()">
             {{(card.confidence * 100).toFixed(0)}}%
           </div>
@@ -129,14 +154,153 @@ import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags
     .card-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 0.75rem;
+      gap: 0.5rem;
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex: 1;
     }
 
     .header-right {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .characteristics-row {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .scheduling-indicator {
+      font-size: 0.875rem;
+      padding: 0.125rem 0.25rem;
+      border-radius: 4px;
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+    }
+
+    .scheduling-fixed {
+      background: #fee2e2;
+      border-color: #dc2626;
+      color: #dc2626;
+    }
+
+    .scheduling-morning-flexible {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      color: #d97706;
+    }
+
+    .scheduling-afternoon-flexible {
+      background: #fed7aa;
+      border-color: #ea580c;
+      color: #c2410c;
+    }
+
+    .scheduling-anytime {
+      background: #d1fae5;
+      border-color: #10b981;
+      color: #059669;
+    }
+
+    .template-indicator,
+    .repetition-indicator,
+    .urgency-indicator {
+      font-size: 0.875rem;
+      padding: 0.125rem 0.25rem;
+      border-radius: 4px;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+    }
+
+    .template-indicator {
+      background: #ede9fe;
+      border-color: #8b5cf6;
+      color: #7c3aed;
+    }
+
+    .repetition-indicator {
+      background: #dbeafe;
+      border-color: #3b82f6;
+      color: #2563eb;
+    }
+
+    .urgency-indicator {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #dc2626;
+      animation: pulse-urgent 2s infinite;
+    }
+
+    @keyframes pulse-urgent {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+
+    .priority-badge {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 0.125rem 0.375rem;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+      border: 1px solid;
+    }
+
+    .priority-low {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+      color: #6b7280;
+    }
+
+    .priority-medium {
+      background: #dbeafe;
+      border-color: #3b82f6;
+      color: #1e40af;
+    }
+
+    .priority-high {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      color: #d97706;
+    }
+
+    .priority-critical {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #dc2626;
+      animation: pulse-critical 1.5s infinite;
+    }
+
+    @keyframes pulse-critical {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
     }
 
 
@@ -332,8 +496,27 @@ import { LifestyleTagsComponent } from '@shared/ui/lifestyle-tags/lifestyle-tags
       
       .card-header {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
+        align-items: stretch;
+        gap: 0.75rem;
+      }
+      
+      .header-left {
+        order: 1;
+      }
+      
+      .header-right {
+        order: 2;
+        justify-content: space-between;
+      }
+      
+      .characteristics-row {
+        justify-content: flex-start;
+      }
+      
+      .priority-badge,
+      .confidence-badge {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.25rem;
       }
       
     }
@@ -473,6 +656,70 @@ export class EventCardComponent {
       details.push(EventDetailsListComponent.createDurationDetail(this.card.suggestedDurationMinutes));
     }
 
+    // Add preparation time if available
+    if (this.card.estimatedPreparationTime) {
+      details.push({
+        icon: '🛠️',
+        text: `Prep time: ${this.card.estimatedPreparationTime}min`,
+        type: 'other'
+      });
+    }
+
     return details;
+  }
+
+  getSchedulingFlexibilityIcon(): string {
+    switch (this.card.schedulingFlexibility) {
+      case 'fixed': return '🔒';
+      case 'morning_flexible': return '🌅';
+      case 'afternoon_flexible': return '🌇';
+      case 'anytime': return '🕐';
+      default: return '🕐';
+    }
+  }
+
+  getSchedulingFlexibilityClass(): string {
+    return `scheduling-${this.card.schedulingFlexibility.replace('_', '-')}`;
+  }
+
+  getSchedulingFlexibilityTooltip(): string {
+    switch (this.card.schedulingFlexibility) {
+      case 'fixed': return 'Must be at specific time';
+      case 'morning_flexible': return 'Flexible - anytime morning';
+      case 'afternoon_flexible': return 'Flexible - anytime afternoon';
+      case 'anytime': return 'Completely flexible timing';
+      default: return 'Scheduling flexibility unknown';
+    }
+  }
+
+  getPriorityClass(): string {
+    return `priority-${this.card.priority}`;
+  }
+
+  getPriorityLabel(): string {
+    switch (this.card.priority) {
+      case 'low': return 'Low';
+      case 'medium': return 'Med';
+      case 'high': return 'High';
+      case 'critical': return 'CRIT';
+      default: return 'Med';
+    }
+  }
+
+  getRepetitionTooltip(): string {
+    const pattern = this.card.repetitionPattern;
+    if (pattern.type === 'none') return '';
+    
+    let tooltip = `Repeats ${pattern.type}`;
+    if (pattern.frequency && pattern.frequency > 1) {
+      tooltip += ` (every ${pattern.frequency})`;
+    }
+    if (pattern.endDate) {
+      tooltip += ` until ${pattern.endDate.toLocaleDateString()}`;
+    } else if (pattern.maxOccurrences) {
+      tooltip += ` for ${pattern.maxOccurrences} times`;
+    }
+    
+    return tooltip;
   }
 }
