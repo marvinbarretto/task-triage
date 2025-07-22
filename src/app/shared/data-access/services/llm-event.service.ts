@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { LLMService } from '../../../../../projects/angular-foundation/src/lib/llm/gemini.service';
-import { EventCard, EventProcessingResult, EventType } from '../models/event.model';
+import { EventCard, EventProcessingResult, EventType, SchedulingFlexibility, EventPriority, RepetitionPattern } from '../models/event.model';
 
 @Injectable({
   providedIn: 'root'
@@ -14,28 +14,56 @@ export class LLMEventService {
     console.log(`[LLMEventService] Processing note: "${noteText.substring(0, 100)}..."`);
     
     try {
-      const prompt = this.buildEventExtractionPrompt(noteText);
-      // Try fastest/cheapest model first with fallback to more reliable models
-      const response = await this.llmService.generateContent(prompt, 'gemini-1.5-flash-8b');
+      // Split note into lines and filter out empty lines
+      const lines = noteText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
       
-      if (!response.success) {
-        console.error('[LLMEventService] LLM processing failed:', response.error);
+      console.log(`[LLMEventService] Processing ${lines.length} lines`);
+      
+      if (lines.length === 0) {
         return {
           originalNote: noteText,
           generatedCards: [],
           processingSuccess: false,
-          errorMessage: response.error || 'Failed to process note',
+          errorMessage: 'No valid lines found to process',
           processingTime: Date.now() - startTime
         };
       }
       
-      const cards = this.parseEventCardsFromResponse(response.data, noteText);
+      // Process each line as a potential event
+      const allCards: EventCard[] = [];
       
-      console.log(`[LLMEventService] Generated ${cards.length} event cards`);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        console.log(`[LLMEventService] Processing line ${i + 1}: "${line}"`);
+        
+        try {
+          const prompt = this.buildEventExtractionPromptForLine(line, i);
+          const response = await this.llmService.generateContent(prompt, 'gemini-1.5-flash-8b');
+          
+          if (response.success) {
+            const lineCards = this.parseEventCardsFromResponse(response.data, line, i);
+            allCards.push(...lineCards);
+          } else {
+            // Create fallback card for this line
+            console.warn(`[LLMEventService] Failed to process line ${i + 1}, creating fallback`);
+            const fallbackCards = this.createFallbackEventCard(line, i);
+            allCards.push(...fallbackCards);
+          }
+        } catch (error) {
+          console.warn(`[LLMEventService] Error processing line ${i + 1}:`, error);
+          // Create fallback card for this line
+          const fallbackCards = this.createFallbackEventCard(line, i);
+          allCards.push(...fallbackCards);
+        }
+      }
+      
+      console.log(`[LLMEventService] Generated ${allCards.length} event cards from ${lines.length} lines`);
       
       return {
         originalNote: noteText,
-        generatedCards: cards,
+        generatedCards: allCards,
         processingSuccess: true,
         processingTime: Date.now() - startTime
       };
@@ -51,6 +79,42 @@ export class LLMEventService {
         processingTime: Date.now() - startTime
       };
     }
+  }
+
+  private buildEventExtractionPromptForLine(lineText: string, lineIndex: number): string {
+    return `You are an AI assistant that extracts a calendar event from a single line of text. 
+
+Analyze the following line and extract ONE calendar event. Provide:
+- A clear, actionable title
+- A description (optional)
+- Event type (meeting, task, reminder, appointment, deadline, personal, work)
+- Suggested date/time if mentioned or can be inferred
+- Duration in minutes (default to 50 minutes = 2 pomodoros if not specified)
+- Your confidence level (0-1)
+- Brief reasoning for your interpretation
+
+Line ${lineIndex + 1}: "${lineText}"
+
+Please respond in JSON format with a single event:
+{
+  "title": "Clear, actionable title",
+  "description": "Optional description", 
+  "type": "meeting|task|reminder|appointment|deadline|personal|work",
+  "suggestedDate": "YYYY-MM-DD or null",
+  "suggestedTime": "HH:MM or null", 
+  "durationMinutes": 50,
+  "confidence": 0.85,
+  "reasoning": "Brief explanation of interpretation"
+}
+
+Guidelines:
+- Create exactly ONE event from this line
+- Be specific and actionable in the title
+- Only suggest dates/times if clearly indicated or strongly implied
+- Default to 50 minutes duration (2 pomodoros) unless specific duration is mentioned
+- Use high confidence (0.8+) only when very certain
+- If the line is vague, create a general event with lower confidence
+- Focus on making the event useful and actionable`;
   }
 
   private buildEventExtractionPrompt(noteText: string): string {
@@ -93,29 +157,38 @@ Guidelines:
 - Prefer creating useful events over being overly cautious`;
   }
 
-  private parseEventCardsFromResponse(responseText: string, originalNote: string): EventCard[] {
+  private parseEventCardsFromResponse(responseText: string, originalNote: string, lineIndex?: number): EventCard[] {
     try {
       // Try to extract JSON from the response
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.warn('[LLMEventService] No JSON found in response, creating fallback event');
-        return this.createFallbackEventCard(originalNote);
+        return this.createFallbackEventCard(originalNote, lineIndex);
       }
       
       const parsed = JSON.parse(jsonMatch[0]);
-      const events = parsed.events || parsed.event || [parsed];
       
-      if (!Array.isArray(events)) {
-        console.warn('[LLMEventService] Response not in expected array format');
-        return this.createFallbackEventCard(originalNote);
+      // For line-based processing, we expect a single event object, not an array
+      if (lineIndex !== undefined) {
+        // Single line processing - expect single event object
+        const card = this.convertToEventCard(parsed, originalNote, lineIndex || 0);
+        return card ? [card] : this.createFallbackEventCard(originalNote, lineIndex);
+      } else {
+        // Legacy multi-event processing
+        const events = parsed.events || parsed.event || [parsed];
+        
+        if (!Array.isArray(events)) {
+          console.warn('[LLMEventService] Response not in expected array format');
+          return this.createFallbackEventCard(originalNote, lineIndex);
+        }
+        
+        return events.map((event: any, index: number) => this.convertToEventCard(event, originalNote, index))
+                    .filter((card: EventCard | null) => card !== null) as EventCard[];
       }
-      
-      return events.map((event: any, index: number) => this.convertToEventCard(event, originalNote, index))
-                  .filter((card: EventCard | null) => card !== null) as EventCard[];
       
     } catch (error) {
       console.warn('[LLMEventService] Failed to parse LLM response:', error);
-      return this.createFallbackEventCard(originalNote);
+      return this.createFallbackEventCard(originalNote, lineIndex);
     }
   }
 
@@ -167,7 +240,14 @@ Guidelines:
         suggestedDurationMinutes: durationMinutes,
         confidence,
         reasoning: eventData.reasoning || 'Event extracted from user note',
-        isSelected: false
+        isSelected: false,
+        // Enhanced characteristics with defaults
+        schedulingFlexibility: 'anytime',
+        priority: confidence > 0.8 ? 'high' : confidence > 0.5 ? 'medium' : 'low',
+        isUrgent: eventType === 'deadline',
+        templatePotential: false,
+        repetitionPattern: { type: 'none' },
+        canBeMovedIfNeeded: true
       };
       
       return card;
@@ -178,19 +258,27 @@ Guidelines:
     }
   }
 
-  private createFallbackEventCard(originalNote: string): EventCard[] {
+  private createFallbackEventCard(originalNote: string, lineIndex?: number): EventCard[] {
     console.log('[LLMEventService] Creating fallback event card');
     
-    const now = new Date();
     const fallbackCard: EventCard = {
-      id: `fallback_card_${Date.now()}`,
+      id: `fallback_card_${Date.now()}_${lineIndex || 0}`,
       originalText: originalNote,
       extractedTitle: this.generateFallbackTitle(originalNote),
       extractedDescription: originalNote.length > 50 ? originalNote : undefined,
       suggestedType: 'task',
       confidence: 0.3,
-      reasoning: 'Generated as fallback when AI processing failed',
-      isSelected: false
+      reasoning: lineIndex !== undefined 
+        ? `Generated as fallback for line ${lineIndex + 1} when AI processing failed`
+        : 'Generated as fallback when AI processing failed',
+      isSelected: false,
+      // Enhanced characteristics with defaults
+      schedulingFlexibility: 'anytime',
+      priority: 'low',
+      isUrgent: false,
+      templatePotential: false,
+      repetitionPattern: { type: 'none' },
+      canBeMovedIfNeeded: true
     };
     
     return [fallbackCard];
