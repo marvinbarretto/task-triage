@@ -1,4 +1,5 @@
 import { EvaluationCategory, ScoringWeights } from './evaluation.model';
+import { Rule } from './event.model';
 
 export interface UIConfiguration {
   appTitle: string;
@@ -31,11 +32,19 @@ export interface ParsingConfiguration {
   maxTaskLength: number;
 }
 
+export interface RuleConfiguration {
+  enabledRules: string[];
+  ruleSettings: Record<string, any>;
+  autoValidation: boolean;
+  showSuggestions: boolean;
+}
+
 export interface AppConfig {
   categories: EvaluationCategory[];
   defaultWeights: ScoringWeights;
   ui: UIConfiguration;
   export: ExportConfiguration;
   parsing: ParsingConfiguration;
+  rules?: RuleConfiguration;
   version: string;
 }

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { LLMService } from '../../../../../projects/angular-foundation/src/lib/llm/gemini.service';
+import { LLMService } from 'angular-foundation';
 import { EventCard, EventProcessingResult, EventType, SchedulingFlexibility, EventPriority, RepetitionPattern } from '../models/event.model';
 
 @Injectable({

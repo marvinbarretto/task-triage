@@ -1,15 +1,16 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
-import { environment } from '../../environments/environment';
 import { LLMRequest, LLMResponse, GeminiModel, MODEL_CONFIGS, MODEL_FALLBACK_ORDER } from './llm.types';
+import { LLM_CONFIG, LLMConfig, DEFAULT_LLM_CONFIG } from './llm-config';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LLMService {
-  private readonly _genAI = new GoogleGenerativeAI(environment.llm?.gemini || '');
+  private readonly config = inject(LLM_CONFIG);
+  private readonly _genAI = new GoogleGenerativeAI(this.config.gemini);
   private readonly _modelCache = new Map<GeminiModel, GenerativeModel>();
-  private _defaultModel: GeminiModel = environment.llm?.defaultModel || 'gemini-1.5-flash-8b';
+  private _defaultModel: GeminiModel = this.config.defaultModel || DEFAULT_LLM_CONFIG.defaultModel!
 
   // Simple cache for testing - TEMPORARILY DISABLED
   // Cache was causing permanent blocking after rejections due to weak cache key

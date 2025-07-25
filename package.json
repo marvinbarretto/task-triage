@@ -32,7 +32,7 @@
     "@angular/forms": "^20.1.0",
     "@angular/platform-browser": "^20.1.0",
     "@angular/router": "^20.1.0",
-    "@fourfold/angular-foundation": "0.1.1",
+    "@fourfold/angular-foundation": "0.1.6",
     "@fullcalendar/angular": "6.1.18",
     "@fullcalendar/core": "6.1.18",
     "@fullcalendar/daygrid": "6.1.18",

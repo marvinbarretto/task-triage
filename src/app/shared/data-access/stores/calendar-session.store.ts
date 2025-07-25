@@ -2,6 +2,8 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { Event, EventCard, EventProcessingResult, CalendarEvent, EventType } from '../models/event.model';
 import { MainPageState } from '../models/session.model';
 import { StorageService } from '../services/storage.service';
+import { BudgetService } from '../services/budget.service';
+import { EventTagsService } from '../services/event-tags.service';
 
 interface CalendarSession {
   id: string;
@@ -20,6 +22,8 @@ interface CalendarSession {
 })
 export class CalendarSessionStore {
   private storageService = inject(StorageService);
+  private budgetService = inject(BudgetService);
+  private eventTagsService = inject(EventTagsService);
   
   private sessionSignal = signal<CalendarSession | null>(null);
   
@@ -163,8 +167,18 @@ export class CalendarSessionStore {
     return newEvent;
   }
   
-  addEventToCalendar(event: Event): void {
+  async addEventToCalendar(event: Event): Promise<void> {
     console.log(`[CalendarStore] Adding event to calendar: "${event.title}"`);
+    
+    // Generate tags for budget integration
+    const tags = await this.eventTagsService.generateTagsFromContent(
+      event.title, 
+      event.description || '', 
+      event.type
+    );
+    
+    // Process for budget implications
+    await this.budgetService.processCalendarEventForTimeTracking(event, tags);
     
     this.sessionSignal.update(session => {
       if (!session) return session;

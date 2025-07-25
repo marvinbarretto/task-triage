@@ -5,24 +5,35 @@ import { Router } from '@angular/router';
 import { CalendarSessionStore } from '@shared/data-access/stores/calendar-session.store';
 import { CalendarService } from '@shared/data-access/services/calendar.service';
 import { Event, EventType } from '@shared/data-access/models/event.model';
+import { OverlayService, OverlayResult } from '@fourfold/angular-foundation';
 import { CalendarDisplayComponent } from '../ui/calendar-display.component';
 import { EventDetailsModalComponent } from '../ui/event-details-modal.component';
+import { CalendarIssuesComponent } from '../ui/calendar-issues/calendar-issues.component';
+import { RulesSettingsComponent } from '../ui/rules-settings/rules-settings.component';
+import { BudgetWidgetComponent } from '../../budgets/ui/budget-widget.component';
 
 @Component({
   selector: 'app-calendar-page',
-  imports: [CommonModule, ReactiveFormsModule, CalendarDisplayComponent, EventDetailsModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, CalendarDisplayComponent, EventDetailsModalComponent, CalendarIssuesComponent, RulesSettingsComponent],
   template: `
     <div class="page-content">
       <div class="header">
         <h1>Your Calendar</h1>
         <div class="header-actions">
-          <button 
+          <button
             type="button"
             class="add-note-btn"
             (click)="addNewNote()">
             + Add New Note
           </button>
-          
+
+          <button
+            type="button"
+            class="settings-btn"
+            (click)="toggleRulesSettings()">
+            ⚙️ Rules
+          </button>
+
           <div class="view-controls">
             <select [formControl]="viewControl" (change)="onViewChange()">
               <option value="dayGridMonth">Month</option>
@@ -38,7 +49,7 @@ import { EventDetailsModalComponent } from '../ui/event-details-modal.component'
           <div class="empty-icon">📅</div>
           <h3>No events yet</h3>
           <p>Start by adding your first note to create calendar events.</p>
-          <button 
+          <button
             type="button"
             class="primary"
             (click)="addNewNote()">
@@ -46,32 +57,48 @@ import { EventDetailsModalComponent } from '../ui/event-details-modal.component'
           </button>
         </div>
       } @else {
-        <div class="calendar-section">
-          <app-calendar-display
-            [events]="calendarEventsList()"
-            [view]="currentView"
-            (eventClick)="onEventClick($event)"
-            (dateClick)="onDateClick($event)">
-          </app-calendar-display>
-        </div>
+        <div class="main-layout">
+          <div class="calendar-container">
+            <div class="calendar-section">
+              <app-calendar-display
+                [events]="calendarEventsList()"
+                [view]="currentView"
+                (eventClick)="onEventClick($event)"
+                (dateClick)="onDateClick($event)">
+              </app-calendar-display>
+            </div>
+          </div>
 
-        <div class="events-summary">
-          <h3>Upcoming Events</h3>
-          <div class="upcoming-events">
-            @for (event of upcomingEvents; track event.id) {
-              <div class="event-item" (click)="onEventClick(event)">
-                <div class="event-type-icon">{{getEventTypeIcon(event.type)}}</div>
-                <div class="event-info">
-                  <div class="event-title">{{event.title}}</div>
-                  <div class="event-time">{{formatEventTime(event)}}</div>
-                </div>
+          <div class="sidebar">
+            <!-- Calendar Issues Widget -->
+            <div class="issues-widget">
+              <app-calendar-issues
+                [events]="calendarEvents()"
+                [maxDisplayed]="5">
+              </app-calendar-issues>
+            </div>
+
+            <!-- Upcoming Events Summary -->
+            <div class="events-summary">
+              <h3>Upcoming Events</h3>
+              <div class="upcoming-events">
+                @for (event of upcomingEvents; track event.id) {
+                  <div class="event-item" (click)="onEventClick(event)">
+                    <div class="event-type-icon">{{getEventTypeIcon(event.type)}}</div>
+                    <div class="event-info">
+                      <div class="event-title">{{event.title}}</div>
+                      <div class="event-time">{{formatEventTime(event)}}</div>
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="no-upcoming">No upcoming events in the next 7 days</p>
+                }
               </div>
-            } @empty {
-              <p class="no-upcoming">No upcoming events in the next 7 days</p>
-            }
+            </div>
           </div>
         </div>
       }
+
 
       @if (selectedEvent) {
         <app-event-details-modal
@@ -126,6 +153,28 @@ import { EventDetailsModalComponent } from '../ui/event-details-modal.component'
       background: #2563eb;
     }
 
+    .settings-btn {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .settings-btn:hover {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+    }
+
+    .settings-btn.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+
     .view-controls select {
       padding: 0.5rem 1rem;
       border: 2px solid #d1d5db;
@@ -177,12 +226,36 @@ import { EventDetailsModalComponent } from '../ui/event-details-modal.component'
       background: #2563eb;
     }
 
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    .calendar-container {
+      flex: 1;
+    }
+
     .calendar-section {
-      margin-bottom: 2rem;
       background: white;
       border-radius: 12px;
       padding: 1.5rem;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .issues-widget {
+      background: white;
+      border-radius: 12px;
+      padding: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
     }
 
     .events-summary {
@@ -191,6 +264,7 @@ import { EventDetailsModalComponent } from '../ui/event-details-modal.component'
       padding: 1.5rem;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
+
 
     .events-summary h3 {
       margin: 0 0 1rem 0;
@@ -247,6 +321,17 @@ import { EventDetailsModalComponent } from '../ui/event-details-modal.component'
       padding: 2rem;
     }
 
+    @media (max-width: 968px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .sidebar {
+        order: -1;
+      }
+    }
+
     @media (max-width: 768px) {
       .header {
         flex-direction: column;
@@ -255,10 +340,17 @@ import { EventDetailsModalComponent } from '../ui/event-details-modal.component'
 
       .header-actions {
         justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
       }
 
       .page-content {
         padding: 1rem;
+      }
+
+      .settings-modal {
+        margin: 0.5rem;
+        width: calc(100% - 1rem);
       }
     }
   `]
@@ -268,6 +360,7 @@ export class CalendarPageComponent implements OnInit {
   private fb = inject(FormBuilder);
   private calendarStore = inject(CalendarSessionStore);
   private calendarService = inject(CalendarService);
+  private overlayService = inject(OverlayService);
 
   // Signals from store
   calendarEvents = this.calendarStore.calendarEvents;
@@ -339,6 +432,21 @@ export class CalendarPageComponent implements OnInit {
     console.log('[Calendar] Adding new note');
     this.calendarStore.resetForNewNote();
     await this.router.navigate(['/note-input']);
+  }
+
+  toggleRulesSettings(): void {
+    const overlayResult: OverlayResult<RulesSettingsComponent> = this.overlayService.open(RulesSettingsComponent, {
+      maxWidth: '800px',
+      width: '90vw'
+    });
+
+    overlayResult.result.then((result: any) => {
+      if (result) {
+        console.log('[Calendar] Rules configuration changed:', result);
+        // The calendar issues widget will automatically re-validate with the new rules
+        // since it uses computed signals that depend on the events
+      }
+    });
   }
 
   getEventTypeIcon(type: EventType): string {

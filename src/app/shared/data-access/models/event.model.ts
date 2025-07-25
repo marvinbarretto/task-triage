@@ -80,3 +80,48 @@ export interface CalendarEvent {
     attendees?: string[];
   };
 }
+
+// Rule validation system interfaces
+export type RuleCategory = 'time' | 'location' | 'workload' | 'breaks' | 'conflicts' | 'duration';
+
+export type RuleSeverity = 'info' | 'warning' | 'error';
+
+export interface RuleCondition {
+  type: string;
+  parameters: Record<string, any>;
+}
+
+export interface Rule {
+  id: string;
+  name: string;
+  description: string;
+  category: RuleCategory;
+  isEnabled: boolean;
+  severity: RuleSeverity;
+  condition: RuleCondition;
+  message: string;
+  suggestionMessage?: string;
+}
+
+export interface RuleViolation {
+  ruleId: string;
+  ruleName: string;
+  severity: RuleSeverity;
+  message: string;
+  suggestionMessage?: string;
+  affectedEvents: string[];
+  eventTitles: string[];
+  timestamp: Date;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  violations: RuleViolation[];
+  suggestions?: string[];
+  validatedAt: Date;
+}
+
+export interface RuleConfiguration {
+  rules: Rule[];
+  lastUpdated: Date;
+}

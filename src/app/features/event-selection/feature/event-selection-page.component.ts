@@ -11,10 +11,14 @@ import { MainPageState } from '@shared/data-access/models/session.model';
 import { EventCardsGridComponent } from '../ui/event-cards-grid.component';
 import { CalendarDisplayComponent } from '../../calendar/ui/calendar-display.component';
 import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcements/calendar-announcements.component';
+import { BudgetWidgetComponent } from '../../budgets/ui/budget-widget.component';
+import { CalendarIssuesComponent } from '../../calendar/ui/calendar-issues/calendar-issues.component';
+import { RulesSettingsComponent } from '../../calendar/ui/rules-settings/rules-settings.component';
+import { OverlayService, OverlayResult } from '@fourfold/angular-foundation';
 
 @Component({
   selector: 'app-event-selection-page',
-  imports: [CommonModule, ReactiveFormsModule, EventCardsGridComponent, CalendarDisplayComponent, CalendarAnnouncementsComponent],
+  imports: [CommonModule, ReactiveFormsModule, EventCardsGridComponent, CalendarDisplayComponent, CalendarAnnouncementsComponent, BudgetWidgetComponent, CalendarIssuesComponent, RulesSettingsComponent],
   template: `
     <div class="page-content">
       <!-- Always Visible Note Input Section -->
@@ -37,10 +41,10 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
               [disabled]="noteForm.invalid || isProcessingInitial">
               {{isProcessingInitial ? 'Processing with AI...' : 'Create Event Cards'}}
             </button>
-            
+
             @if (hasGeneratedCards()) {
-              <button 
-                type="button" 
+              <button
+                type="button"
                 class="secondary"
                 (click)="startOver()">
                 Clear All
@@ -54,7 +58,7 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
             {{errorMessage}}
           </div>
         }
-        
+
         @if (processingNotes.length > 0) {
           <div class="processing-notes">
             <h3>AI Processing Results:</h3>
@@ -71,11 +75,11 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
       <div class="content-layout">
         <div class="events-section">
           <h2>Event Options</h2>
-          
+
           <div class="auto-add-section">
             <label class="auto-add-checkbox">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 [formControl]="autoAddControl"
                 (change)="onAutoAddToggle()">
               <span class="checkmark"></span>
@@ -83,7 +87,7 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
             </label>
             <p class="auto-add-help">When enabled, all generated events will be automatically placed in available time slots</p>
           </div>
-          
+
           @if (generatedCards().length > 0) {
             <app-event-cards-grid
               [cards]="generatedCards()"
@@ -96,9 +100,9 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
               (cardTitleEdit)="onCardTitleEdit($event)"
               (cardDescriptionEdit)="onCardDescriptionEdit($event)">
             </app-event-cards-grid>
-            
+
             <div class="actions">
-              <button 
+              <button
                 type="button"
                 [disabled]="!selectedCard()"
                 (click)="proceedToCalendar()">
@@ -121,7 +125,44 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
         </div>
 
         <div class="calendar-section">
-          <h2>Your Calendar</h2>
+
+          <!-- Calendar Activity Announcements -->
+          <div class="calendar-announcements">
+            <app-calendar-announcements></app-calendar-announcements>
+          </div>
+
+          <div class="calendar-header">
+            <div class="calendar-title-section">
+              <h2>Your Calendar</h2>
+              <!-- Quick Time Summary -->
+              <div class="time-summary-quick">
+                <span class="time-icon">⏱️</span>
+                <span class="time-text">Weekly Progress</span>
+              </div>
+            </div>
+            <div class="calendar-header-actions">
+              <button
+                type="button"
+                class="rules-btn"
+                (click)="toggleRulesSettings()"
+                [class.active]="showRulesSettings">
+                ⚙️ Rules
+              </button>
+            </div>
+          </div>
+
+          <!-- Enhanced Time Allocation Widget - Prominent Position -->
+          <div class="time-allocation-panel">
+            <app-budget-widget [compact]="false" [showCategories]="true" [maxCategories]="4"></app-budget-widget>
+          </div>
+
+          <!-- Calendar Issues Widget -->
+          <div class="calendar-issues">
+            <app-calendar-issues
+              [events]="calendarEventsRaw()"
+              [maxDisplayed]="3">
+            </app-calendar-issues>
+          </div>
           <div class="calendar-wrapper">
             <app-calendar-display
               [events]="calendarEvents()"
@@ -132,7 +173,7 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
               (eventDrop)="onEventDrop($event)">
             </app-calendar-display>
           </div>
-          
+
           <div class="calendar-info">
             @if (hasGeneratedCards()) {
               <p><strong>💡 Tip:</strong> Drag event cards directly onto time slots to schedule them!</p>
@@ -143,13 +184,11 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
               <p><strong>📅 You have {{calendarEvents().length}} event(s) scheduled.</strong></p>
             }
           </div>
-          
-          <!-- Calendar Activity Announcements -->
-          <div class="calendar-announcements">
-            <app-calendar-announcements></app-calendar-announcements>
-          </div>
+
+
         </div>
       </div>
+
 
       @if (isCreatingEvent) {
         <div class="loading-overlay">
@@ -395,7 +434,7 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
         grid-template-columns: 1fr;
         gap: 2rem;
       }
-      
+
       .page-content {
         max-width: 900px;
       }
@@ -405,12 +444,12 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
       .actions {
         flex-direction: column;
       }
-      
+
       .calendar-wrapper {
         padding: 0.5rem;
       }
     }
-    
+
     /* Note Input Section Styles */
     .note-input-section {
       margin-bottom: 2rem;
@@ -470,18 +509,18 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
       border: 1px solid #3b82f6;
       border-radius: 8px;
     }
-    
+
     .processing-notes h3 {
       margin: 0 0 0.5rem 0;
       color: #1e40af;
     }
-    
+
     .processing-notes ul {
       margin: 0;
       padding-left: 1.5rem;
       color: #1f2937;
     }
-    
+
     .processing-notes li {
       margin-bottom: 0.25rem;
     }
@@ -522,6 +561,98 @@ import { CalendarAnnouncementsComponent } from '@shared/ui/calendar-announcement
     .calendar-announcements {
       margin-top: 1rem;
     }
+
+    /* Calendar header with actions */
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .calendar-title-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .calendar-title-section h2 {
+      margin: 0;
+      color: #1f2937;
+    }
+
+    .time-summary-quick {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    .time-icon {
+      font-size: 1rem;
+    }
+
+    .calendar-header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .rules-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .rules-btn:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+
+    .rules-btn.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+
+    /* Enhanced Time Allocation Panel */
+    .time-allocation-panel {
+      margin-bottom: 1.5rem;
+      border: 2px solid #e0f2fe;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .time-allocation-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #06b6d4, #10b981);
+    }
+
+    /* Calendar issues section */
+    .calendar-issues {
+      margin-bottom: 1rem;
+    }
   `]
 })
 export class EventSelectionPageComponent implements OnInit {
@@ -531,6 +662,7 @@ export class EventSelectionPageComponent implements OnInit {
   private calendarService = inject(CalendarService);
   private llmEventService = inject(LLMEventService);
   private activityAnnouncer = inject(CalendarActivityAnnouncerService);
+  private overlayService = inject(OverlayService);
 
   // Signals from store
   generatedCards = this.calendarStore.generatedCards;
@@ -539,6 +671,7 @@ export class EventSelectionPageComponent implements OnInit {
   originalNote = this.calendarStore.currentNote;
   currentState = this.calendarStore.currentState;
   calendarEvents = this.calendarStore.calendarEventsList;
+  calendarEventsRaw = this.calendarStore.calendarEvents;
   hasGeneratedCards = this.calendarStore.hasGeneratedCards;
 
   // Form controls
@@ -546,7 +679,7 @@ export class EventSelectionPageComponent implements OnInit {
     noteInput: ['', [Validators.required, Validators.minLength(5)]]
   });
   noteControl = new FormControl('');
-  autoAddControl = new FormControl(false);
+  autoAddControl = new FormControl(true);
 
   // State management
   isCreatingEvent = false;
@@ -555,13 +688,14 @@ export class EventSelectionPageComponent implements OnInit {
   errorMessage = '';
   processingNotes: string[] = [];
   currentDraggedCard: EventCard | null = null;
+  showRulesSettings = false;
 
   // Placeholder for note input
   placeholder = `Enter one event per line for best results...
 
 For example:
 Team meeting with Sarah and Mike on Friday at 2pm to discuss Q4 goals
-Dentist appointment next Tuesday at 10am  
+Dentist appointment next Tuesday at 10am
 Submit expense report by end of week
 Call mom this weekend to discuss holiday plans`;
 
@@ -614,11 +748,11 @@ Call mom this weekend to discuss holiday plans`;
     console.log('📨 [EventSelection] EVENT DROP RECEIVED FROM CALENDAR!');
     console.log('[EventSelection] Drop info received:', dropInfo);
     console.log('[EventSelection] Available generated cards:', this.generatedCards().map(c => ({id: c.id, title: c.extractedTitle})));
-    
+
     // Find the card that was dropped
     const card = this.generatedCards().find(c => c.id === dropInfo.cardId);
     console.log('[EventSelection] Found matching card:', card);
-    
+
     if (!card) {
       console.error('❌ [EventSelection] Dropped card not found! cardId:', dropInfo.cardId);
       console.log('[EventSelection] Available card IDs:', this.generatedCards().map(c => c.id));
@@ -626,11 +760,11 @@ Call mom this weekend to discuss holiday plans`;
     }
 
     console.log('✅ [EventSelection] Card found, proceeding with event creation...');
-    
+
     // Select the card and update its suggested date/time
     console.log('[EventSelection] Selecting dropped card in store...');
     this.calendarStore.selectEventCard(card);
-    
+
     // Create and add event immediately
     console.log('[EventSelection] Starting event creation process...');
     this.createEventFromDrop(card, dropInfo);
@@ -644,14 +778,14 @@ Call mom this weekend to discuss holiday plans`;
       suggestedDuration: card.suggestedDurationMinutes
     });
     console.log('[EventSelection] Drop info for event creation:', dropInfo);
-    
+
     this.isCreatingEvent = true;
 
     try {
       // Use the duration from drop info, card's suggested duration, or default to 50 minutes (2 pomodoros)
       const durationMinutes = dropInfo.durationMinutes || card.suggestedDurationMinutes || 50;
       console.log('[EventSelection] Calculated duration minutes:', durationMinutes);
-      
+
       // Create event with the drop date/time and proper duration
       const customizations = {
         startDate: dropInfo.date,
@@ -660,40 +794,40 @@ Call mom this weekend to discuss holiday plans`;
         // Calculate end date based on duration
         endDate: dropInfo.allDay ? undefined : new Date(dropInfo.date.getTime() + durationMinutes * 60 * 1000)
       };
-      
+
       console.log('[EventSelection] Event customizations:', customizations);
       console.log('[EventSelection] Calling calendar service to create event...');
-      
+
       const newEvent = this.calendarService.createEventFromCard(card, customizations);
-      
+
       console.log('[EventSelection] Event created by service:', newEvent);
       console.log('[EventSelection] Adding event to calendar store...');
-      
+
       // Add to calendar store
-      this.calendarStore.addEventToCalendar(newEvent);
-      
+      await this.calendarStore.addEventToCalendar(newEvent);
+
       // Announce the event addition with enhanced context
       const context: AnnouncementContext = {
         source: 'drag_drop',
         trigger: 'user_action',
         location: 'calendar-drop-zone',
         reason: 'User dragged event card to calendar',
-        metadata: { 
+        metadata: {
           cardId: card.id,
           cardConfidence: card.confidence,
           targetDate: newEvent.startDate.toISOString()
         }
       };
       this.activityAnnouncer.announceEventAdded(newEvent, context);
-      
+
       console.log('✅ [EventSelection] Event successfully added to calendar store!');
       console.log('🎆 [EventSelection] Event creation completed successfully!');
-      
+
       // Don't navigate automatically, let user stay on the page
       // setTimeout(() => {
       //   this.router.navigate(['/calendar']);
       // }, 1000);
-      
+
     } catch (error) {
       console.error('❌ [EventSelection] ERROR creating event from drop:', error);
       console.error('[EventSelection] Error details:', {
@@ -717,32 +851,32 @@ Call mom this weekend to discuss holiday plans`;
 
     try {
       console.log('[EventSelection] Creating event from selected card');
-      
+
       // Create event from the selected card
       const newEvent = this.calendarService.createEventFromCard(selectedCard);
-      
+
       // Add to calendar store
-      this.calendarStore.addEventToCalendar(newEvent);
-      
+      await this.calendarStore.addEventToCalendar(newEvent);
+
       // Announce the event addition with enhanced context
       const manualContext: AnnouncementContext = {
         source: 'form_submit',
         trigger: 'user_action',
         location: 'event-card-customize-button',
         reason: 'User clicked customize and manually added event',
-        metadata: { 
+        metadata: {
           cardId: selectedCard.id,
           cardConfidence: selectedCard.confidence,
           customizations: 'User provided specific time/date'
         }
       };
       this.activityAnnouncer.announceEventAdded(newEvent, manualContext);
-      
+
       console.log('[EventSelection] Event created and added to calendar:', newEvent);
-      
+
       // Navigate to calendar view
       await this.router.navigate(['/calendar']);
-      
+
     } catch (error) {
       console.error('[EventSelection] Error creating event:', error);
       // Could show an error message to user here
@@ -771,13 +905,13 @@ Call mom this weekend to discuss holiday plans`;
 
       // Process the edited note
       const result = await this.llmEventService.processNoteForEvents(noteText);
-      
+
       // Update the store with new results
       this.calendarStore.setCurrentNote(noteText);
       this.calendarStore.setProcessingResult(result);
-      
+
       console.log('[EventSelection] Cards regenerated successfully');
-      
+
     } catch (error) {
       console.error('[EventSelection] Error regenerating cards:', error);
     } finally {
@@ -813,7 +947,7 @@ Call mom this weekend to discuss holiday plans`;
 
       // Process note with LLM service
       const processingResult = await this.llmEventService.processNoteForEvents(noteText);
-      
+
       this.processingNotes.push(`Generated ${processingResult.generatedCards.length} event cards`);
       this.processingNotes.push(`Processing time: ${processingResult.processingTime}ms`);
 
@@ -824,19 +958,19 @@ Call mom this weekend to discuss holiday plans`;
 
       // Update store with processing result
       this.calendarStore.setProcessingResult(processingResult);
-      
+
       // Update the note control for editing
       this.noteControl.setValue(noteText);
 
       console.log(`Generated ${processingResult.generatedCards.length} event cards:`, processingResult.generatedCards);
-      
+
       // Auto-add events to calendar if checkbox is enabled
       if (this.autoAddControl.value && processingResult.generatedCards.length > 0) {
         setTimeout(() => {
           this.autoAddAllEventsToCalendar();
         }, 100); // Small delay to allow UI to update
       }
-      
+
     } catch (error) {
       this.errorMessage = 'Something went wrong processing your note. Please try again.';
       console.error('Note processing error:', error);
@@ -878,7 +1012,7 @@ Call mom this weekend to discuss holiday plans`;
   onAutoAddToggle(): void {
     const isAutoAdd = this.autoAddControl.value;
     console.log('[EventSelection] Auto-add toggled:', isAutoAdd);
-    
+
     if (isAutoAdd && this.generatedCards().length > 0) {
       // Automatically add all existing cards to calendar
       this.autoAddAllEventsToCalendar();
@@ -887,7 +1021,7 @@ Call mom this weekend to discuss holiday plans`;
 
   private async autoAddAllEventsToCalendar(): Promise<void> {
     console.log('[EventSelection] Auto-adding all events to calendar...');
-    
+
     const cards = this.generatedCards();
     if (cards.length === 0) return;
 
@@ -908,7 +1042,7 @@ Call mom this weekend to discuss holiday plans`;
         // Find next available slot
         const originalSlot = new Date(currentSlot);
         currentSlot = this.findNextAvailableSlot(currentSlot, card.suggestedDurationMinutes || 50);
-        
+
         // Check if we had to move past existing events
         if (originalSlot.getTime() !== currentSlot.getTime()) {
           const conflictingEvents = existingEvents.filter(event => {
@@ -916,7 +1050,7 @@ Call mom this weekend to discuss holiday plans`;
             const eventEnd = new Date(event.end || eventStart.getTime() + 60 * 60 * 1000);
             return (originalSlot >= eventStart && originalSlot < eventEnd);
           });
-          
+
           // Record moved events (simplified - in real implementation would actually move them)
           conflictingEvents.forEach(conflictEvent => {
             movedEvents.push({
@@ -926,7 +1060,7 @@ Call mom this weekend to discuss holiday plans`;
             });
           });
         }
-        
+
         const customizations = {
           startDate: new Date(currentSlot),
           isAllDay: false,
@@ -936,20 +1070,20 @@ Call mom this weekend to discuss holiday plans`;
 
         // Create and add event
         const newEvent = this.calendarService.createEventFromCard(card, customizations);
-        this.calendarStore.addEventToCalendar(newEvent);
+        await this.calendarStore.addEventToCalendar(newEvent);
         createdEvents.push(newEvent);
 
         // Announce individual event addition with enhanced context
-        const timeSlotReason = originalSlot.getTime() === currentSlot.getTime() ? 
-          'Scheduled at optimal time slot' : 
+        const timeSlotReason = originalSlot.getTime() === currentSlot.getTime() ?
+          'Scheduled at optimal time slot' :
           'Scheduled after finding available time slot';
-        
+
         const autoContext: AnnouncementContext = {
           source: 'smart_scheduling',
           trigger: 'auto_schedule',
           location: 'auto-add-all-button',
           reason: timeSlotReason,
-          metadata: { 
+          metadata: {
             cardId: card.id,
             slotTime: currentSlot.toISOString(),
             isOptimalSlot: originalSlot.getTime() === currentSlot.getTime(),
@@ -1009,7 +1143,7 @@ Call mom this weekend to discuss holiday plans`;
       }
 
       console.log(`[EventSelection] Successfully auto-added ${cards.length} events to calendar`);
-      
+
     } catch (error) {
       console.error('[EventSelection] Error auto-adding events:', error);
     } finally {
@@ -1040,5 +1174,23 @@ Call mom this weekend to discuss holiday plans`;
     }
 
     return candidateTime;
+  }
+
+  toggleRulesSettings(): void {
+    this.showRulesSettings = !this.showRulesSettings;
+
+    const overlayResult: OverlayResult<RulesSettingsComponent> = this.overlayService.open(RulesSettingsComponent, {
+      maxWidth: '800px',
+      width: '90vw'
+    });
+
+    overlayResult.result.then((result: any) => {
+      this.showRulesSettings = false;
+      if (result) {
+        console.log('[EventSelection] Rules configuration changed:', result);
+        // The calendar issues widget will automatically re-validate with the new rules
+        // since it uses computed signals that depend on the events
+      }
+    });
   }
 }

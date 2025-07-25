@@ -31,6 +31,11 @@ import { TriageSessionStore } from '@shared/data-access/stores/triage-session.st
               </a>
             </li>
             <li>
+              <a [routerLink]="['/budgets']" routerLinkActive="active">
+                💰 Budgets
+              </a>
+            </li>
+            <li>
               <a [routerLink]="['/results']" routerLinkActive="active">
                 Results
               </a>

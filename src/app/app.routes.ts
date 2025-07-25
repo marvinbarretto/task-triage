@@ -26,6 +26,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/calendar/feature/calendar-page.component').then(c => c.CalendarPageComponent)
   },
   { 
+    path: 'budgets', 
+    loadComponent: () => import('./features/budgets/feature/budgets-page.component').then(c => c.BudgetsPageComponent)
+  },
+  { 
     path: '**', 
     redirectTo: '' 
   }

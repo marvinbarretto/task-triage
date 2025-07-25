@@ -1,4 +1,5 @@
-import { AppConfig, EvaluationCategory, ScoringWeights } from '../models';
+import { AppConfig, EvaluationCategory, ScoringWeights, RuleConfiguration } from '../models';
+import { Rule } from '../models/event.model';
 
 export const DEFAULT_CATEGORIES: EvaluationCategory[] = [
   // Time & Urgency
@@ -255,6 +256,118 @@ export const DEFAULT_WEIGHTS: ScoringWeights = {
   environmental_impact: 0.6
 };
 
+export const DEFAULT_RULES: Rule[] = [
+  {
+    id: 'time_conflict',
+    name: 'Time Conflicts',
+    description: 'Prevent overlapping events from being scheduled',
+    category: 'conflicts',
+    isEnabled: true,
+    severity: 'error',
+    condition: {
+      type: 'time_conflict',
+      parameters: {}
+    },
+    message: 'Events cannot overlap in time',
+    suggestionMessage: 'Move one event to a different time slot'
+  },
+  {
+    id: 'meeting_buffer',
+    name: 'Meeting Buffer Time',
+    description: 'Ensure adequate buffer time between meetings for transitions',
+    category: 'time',
+    isEnabled: true,
+    severity: 'warning',
+    condition: {
+      type: 'meeting_buffer',
+      parameters: {
+        bufferMinutes: 10
+      }
+    },
+    message: 'Meetings should have buffer time between them',
+    suggestionMessage: 'Add 10-minute gaps between consecutive meetings'
+  },
+  {
+    id: 'location_grouping',
+    name: 'Location-Based Task Grouping',
+    description: 'Group events at the same location to minimize travel time',
+    category: 'location',
+    isEnabled: false,
+    severity: 'info',
+    condition: {
+      type: 'location_grouping',
+      parameters: {
+        maxGapMinutes: 180
+      }
+    },
+    message: 'Tasks at the same location should be grouped together',
+    suggestionMessage: 'Consider rearranging events to minimize travel between locations'
+  },
+  {
+    id: 'workload_limit',
+    name: 'Daily Workload Limit',
+    description: 'Prevent scheduling too many events in a single day',
+    category: 'workload',
+    isEnabled: true,
+    severity: 'warning',
+    condition: {
+      type: 'workload_limit',
+      parameters: {
+        maxEventsPerDay: 8
+      }
+    },
+    message: 'Too many events scheduled for one day',
+    suggestionMessage: 'Consider spreading events across multiple days'
+  },
+  {
+    id: 'duration_validation',
+    name: 'Event Duration Validation',
+    description: 'Ensure events have reasonable durations',
+    category: 'duration',
+    isEnabled: true,
+    severity: 'warning',
+    condition: {
+      type: 'duration_validation',
+      parameters: {
+        minDurationMinutes: 5,
+        maxDurationMinutes: 480
+      }
+    },
+    message: 'Event duration seems unreasonable',
+    suggestionMessage: 'Adjust event duration to be between 5 minutes and 8 hours'
+  },
+  {
+    id: 'break_requirement',
+    name: 'Mandatory Break Requirements',
+    description: 'Enforce breaks after extended work periods',
+    category: 'breaks',
+    isEnabled: false,
+    severity: 'info',
+    condition: {
+      type: 'break_requirement',
+      parameters: {
+        workHoursThreshold: 240,
+        requiredBreakMinutes: 30
+      }
+    },
+    message: 'Long work sessions need adequate breaks',
+    suggestionMessage: 'Schedule a 30-minute break after 4 hours of continuous work'
+  }
+];
+
+export const DEFAULT_RULE_CONFIGURATION: RuleConfiguration = {
+  enabledRules: ['time_conflict', 'meeting_buffer', 'workload_limit', 'duration_validation'],
+  ruleSettings: {
+    meeting_buffer: { bufferMinutes: 10 },
+    workload_limit: { maxEventsPerDay: 8 },
+    duration_validation: { minDurationMinutes: 5, maxDurationMinutes: 480 },
+    location_grouping: { maxGapMinutes: 180 },
+    break_requirement: { workHoursThreshold: 240, requiredBreakMinutes: 30 }
+  },
+  autoValidation: true,
+  showSuggestions: true
+};
+
 export const DEFAULT_CONFIG: AppConfig = {
   categories: DEFAULT_CATEGORIES,
   defaultWeights: DEFAULT_WEIGHTS,
@@ -287,5 +400,6 @@ Examples:
     minTaskLength: 3,
     maxTaskLength: 200
   },
+  rules: DEFAULT_RULE_CONFIGURATION,
   version: '1.0.0'
 };

@@ -7,7 +7,7 @@
     "paths": {
       "@shared/*": ["app/shared/*"],
       "angular-foundation": [
-        "./dist/angular-foundation"
+        "../dist/angular-foundation"
       ]
     },
     "strict": true,

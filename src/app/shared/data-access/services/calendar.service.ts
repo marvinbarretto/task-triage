@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Event, EventCard, EventType, CalendarEvent } from '../models/event.model';
+import { Event, EventCard, EventType, CalendarEvent, Rule, ValidationResult, RuleViolation } from '../models/event.model';
+import { EventRuleValidator } from '../../utils/event-rule-validator.util';
+import { DEFAULT_RULES } from '../config/default-config';
 
 @Injectable({
   providedIn: 'root'
@@ -290,5 +292,147 @@ export class CalendarService {
     };
     
     return durations[type] || 50; // Default to 50 minutes (2 pomodoros)
+  }
+
+  // Rule validation methods
+  validateSchedule(events: Event[], customRules?: Rule[]): ValidationResult {
+    const rules = customRules || DEFAULT_RULES;
+    return EventRuleValidator.validateEvents(events, rules);
+  }
+
+  validateEventAgainstSchedule(newEvent: Event, existingEvents: Event[], customRules?: Rule[]): ValidationResult {
+    const allEvents = [...existingEvents, newEvent];
+    return this.validateSchedule(allEvents, customRules);
+  }
+
+  hasScheduleConflicts(events: Event[], customRules?: Rule[]): boolean {
+    const result = this.validateSchedule(events, customRules);
+    return !result.isValid && result.violations.some(v => v.severity === 'error');
+  }
+
+  getScheduleHealth(events: Event[], customRules?: Rule[]): {
+    status: 'healthy' | 'warning' | 'critical';
+    score: number;
+    summary: string;
+  } {
+    const result = this.validateSchedule(events, customRules);
+    
+    if (result.isValid) {
+      return {
+        status: 'healthy',
+        score: 100,
+        summary: 'Schedule is valid with no issues'
+      };
+    }
+    
+    const errorCount = result.violations.filter(v => v.severity === 'error').length;
+    const warningCount = result.violations.filter(v => v.severity === 'warning').length;
+    const infoCount = result.violations.filter(v => v.severity === 'info').length;
+    
+    // Calculate health score (0-100)
+    const totalIssues = errorCount + warningCount + infoCount;
+    const weightedScore = Math.max(0, 100 - (errorCount * 20) - (warningCount * 10) - (infoCount * 5));
+    
+    let status: 'healthy' | 'warning' | 'critical';
+    let summary: string;
+    
+    if (errorCount > 0) {
+      status = 'critical';
+      summary = `${errorCount} critical issue${errorCount > 1 ? 's' : ''} found`;
+    } else if (warningCount > 0) {
+      status = 'warning';
+      summary = `${warningCount} warning${warningCount > 1 ? 's' : ''} detected`;
+    } else {
+      status = 'warning';
+      summary = `${infoCount} suggestion${infoCount > 1 ? 's' : ''} available`;
+    }
+    
+    if (totalIssues > 1 && errorCount === 0) {
+      const issueTypes = [];
+      if (warningCount > 0) issueTypes.push(`${warningCount} warning${warningCount > 1 ? 's' : ''}`);
+      if (infoCount > 0) issueTypes.push(`${infoCount} suggestion${infoCount > 1 ? 's' : ''}`);
+      summary = issueTypes.join(', ');
+    }
+    
+    return {
+      status,
+      score: Math.round(weightedScore),
+      summary
+    };
+  }
+
+  getViolationsByCategory(violations: RuleViolation[]): Record<string, RuleViolation[]> {
+    return violations.reduce((groups, violation) => {
+      // Extract category from rule ID pattern (e.g., "time_conflict" -> "time")
+      const category = violation.ruleId.split('_')[0] || 'general';
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(violation);
+      return groups;
+    }, {} as Record<string, RuleViolation[]>);
+  }
+
+  getMostCriticalViolation(violations: RuleViolation[]): RuleViolation | null {
+    if (violations.length === 0) return null;
+    
+    const severityOrder = { 'error': 3, 'warning': 2, 'info': 1 };
+    
+    return violations.reduce((mostCritical, current) => {
+      const currentWeight = severityOrder[current.severity] || 0;
+      const mostCriticalWeight = severityOrder[mostCritical.severity] || 0;
+      
+      return currentWeight > mostCriticalWeight ? current : mostCritical;
+    });
+  }
+
+  generateQuickFix(violation: RuleViolation, events: Event[]): string[] {
+    const suggestions: string[] = [];
+    
+    switch (violation.ruleId) {
+      case 'time_conflict':
+        suggestions.push('Move one event to a different time');
+        suggestions.push('Shorten one or both events');
+        suggestions.push('Consider making one event virtual if possible');
+        break;
+      
+      case 'meeting_buffer':
+        suggestions.push('Add 10-minute buffer between meetings');
+        suggestions.push('End the first meeting 10 minutes early');
+        suggestions.push('Start the second meeting 10 minutes later');
+        break;
+      
+      case 'workload_limit':
+        suggestions.push('Move some events to the next day');
+        suggestions.push('Combine related tasks into single blocks');
+        suggestions.push('Delegate or reschedule non-critical items');
+        break;
+      
+      case 'duration_validation':
+        suggestions.push('Adjust event duration to reasonable limits');
+        suggestions.push('Break long events into multiple sessions');
+        suggestions.push('Add breaks for extended work periods');
+        break;
+      
+      case 'location_grouping':
+        suggestions.push('Group events at the same location together');
+        suggestions.push('Schedule travel time between locations');
+        suggestions.push('Consider remote alternatives when possible');
+        break;
+      
+      case 'break_requirement':
+        suggestions.push('Schedule a 30-minute break');
+        suggestions.push('Split long work sessions');
+        suggestions.push('Add meal breaks between work blocks');
+        break;
+      
+      default:
+        if (violation.suggestionMessage) {
+          suggestions.push(violation.suggestionMessage);
+        }
+        break;
+    }
+    
+    return suggestions;
   }
 }
