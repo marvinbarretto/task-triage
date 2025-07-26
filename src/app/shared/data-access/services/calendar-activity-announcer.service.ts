@@ -329,7 +329,7 @@ export class CalendarActivityAnnouncerService {
       metadata: { 
         ...context.metadata, 
         eventCount: events.length, 
-        eventTitles: eventNames,
+        itemTitles: eventNames,
         displayedNames,
         hiddenCount: remainingCount
       }

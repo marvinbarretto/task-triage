@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
-import { Event, EventCard, EventType, CalendarEvent, Rule, ValidationResult, RuleViolation } from '../models/event.model';
-import { EventRuleValidator } from '../../utils/event-rule-validator.util';
+import { RuleEngine, ValidationRule, RuleViolation, ValidationResult, RuleSeverity } from 'angular-foundation';
+import { Event, EventCard, EventType, CalendarEvent } from '../models/event.model';
 import { DEFAULT_RULES } from '../config/default-config';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CalendarService {
+  private ruleEngine = new RuleEngine();
 
   createEventFromCard(card: EventCard, customizations?: Partial<Event>): Event {
     const now = new Date();
@@ -297,7 +298,7 @@ export class CalendarService {
   // Rule validation methods
   validateSchedule(events: Event[], customRules?: Rule[]): ValidationResult {
     const rules = customRules || DEFAULT_RULES;
-    return EventRuleValidator.validateEvents(events, rules);
+    return this.ruleEngine.validateItems(events, rules as ValidationRule[]);
   }
 
   validateEventAgainstSchedule(newEvent: Event, existingEvents: Event[], customRules?: Rule[]): ValidationResult {
@@ -376,7 +377,7 @@ export class CalendarService {
   getMostCriticalViolation(violations: RuleViolation[]): RuleViolation | null {
     if (violations.length === 0) return null;
     
-    const severityOrder = { 'error': 3, 'warning': 2, 'info': 1 };
+    const severityOrder: Record<RuleSeverity, number> = { 'error': 3, 'warning': 2, 'info': 1 };
     
     return violations.reduce((mostCritical, current) => {
       const currentWeight = severityOrder[current.severity] || 0;

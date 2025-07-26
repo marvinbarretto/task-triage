@@ -1,3 +1,5 @@
+import { ValidatableItem } from 'angular-foundation';
+
 export type EventType = 'meeting' | 'task' | 'reminder' | 'appointment' | 'deadline' | 'personal' | 'work';
 
 export type SchedulingFlexibility = 'fixed' | 'morning_flexible' | 'afternoon_flexible' | 'anytime';
@@ -14,8 +16,7 @@ export interface RepetitionPattern {
   maxOccurrences?: number;
 }
 
-export interface Event {
-  id: string;
+export interface Event extends ValidatableItem {
   title: string;
   description?: string;
   type: EventType;
@@ -81,47 +82,7 @@ export interface CalendarEvent {
   };
 }
 
-// Rule validation system interfaces
-export type RuleCategory = 'time' | 'location' | 'workload' | 'breaks' | 'conflicts' | 'duration';
-
-export type RuleSeverity = 'info' | 'warning' | 'error';
-
-export interface RuleCondition {
-  type: string;
-  parameters: Record<string, any>;
-}
-
-export interface Rule {
-  id: string;
-  name: string;
-  description: string;
-  category: RuleCategory;
-  isEnabled: boolean;
-  severity: RuleSeverity;
-  condition: RuleCondition;
-  message: string;
-  suggestionMessage?: string;
-}
-
-export interface RuleViolation {
-  ruleId: string;
-  ruleName: string;
-  severity: RuleSeverity;
-  message: string;
-  suggestionMessage?: string;
-  affectedEvents: string[];
-  eventTitles: string[];
-  timestamp: Date;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  violations: RuleViolation[];
-  suggestions?: string[];
-  validatedAt: Date;
-}
-
 export interface RuleConfiguration {
-  rules: Rule[];
+  rules: import('angular-foundation').ValidationRule[];
   lastUpdated: Date;
 }

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { BrainDumpInput, Task, AppConfig } from '../models';
-import { TaskParser } from '../../utils/task-parser.util';
+import { TextParser, TextParserConfig } from 'angular-foundation';
+import { BrainDumpInput, Task, AppConfig, ParsingConfiguration } from '../models';
 import { ConfigStore } from '../stores/config.store';
 
 @Injectable({
@@ -11,12 +11,13 @@ export class BulkInputService {
 
   processBrainDump(rawText: string): BrainDumpInput {
     const config = this.configStore.config();
-    const extractedTasks = TaskParser.parseTaskList(rawText, config.parsing);
+    const textParser = new TextParser(this.convertToTextParserConfig(config.parsing));
+    const extractedTasks = textParser.parseTextToList(rawText);
     
     const processingNotes: string[] = [];
     
     // Add processing insights
-    const format = TaskParser.detectFormat(rawText);
+    const format = this.mapFormatToAppFormat(textParser.detectFormat(rawText));
     processingNotes.push(`Detected format: ${format}`);
     processingNotes.push(`Extracted ${extractedTasks.length} tasks`);
     
@@ -70,5 +71,23 @@ export class BulkInputService {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  private convertToTextParserConfig(parsingConfig: ParsingConfiguration): TextParserConfig {
+    return {
+      bulletPoints: parsingConfig.bulletPoints,
+      numberedLists: parsingConfig.numberedLists,
+      lineBreakSeparated: parsingConfig.lineBreakSeparated,
+      customDelimiters: parsingConfig.customDelimiters,
+      minItemLength: parsingConfig.minTaskLength,
+      maxItemLength: parsingConfig.maxTaskLength,
+      capitalizeFirst: true,
+      removeTrailingPeriods: true
+    };
+  }
+
+  private mapFormatToAppFormat(libraryFormat: string): 'bullets' | 'numbered' | 'paragraphs' | 'mixed' {
+    // Map library format to app format (excluding 'delimited' which app doesn't use)
+    return libraryFormat === 'delimited' ? 'mixed' : libraryFormat as 'bullets' | 'numbered' | 'paragraphs' | 'mixed';
   }
 }

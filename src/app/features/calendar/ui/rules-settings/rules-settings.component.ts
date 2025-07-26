@@ -1,7 +1,7 @@
 import { Component, inject, computed, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Rule, RuleCategory, RuleSeverity } from '../../../../shared/data-access/models/event.model';
+import { RuleCategory, RuleSeverity, ValidationRule as Rule } from 'angular-foundation';
 import { DEFAULT_RULES } from '../../../../shared/data-access/config/default-config';
 
 @Component({
@@ -661,7 +661,8 @@ export class RulesSettingsComponent {
       'workload': 'Workload Management',
       'breaks': 'Break Requirements',
       'conflicts': 'Conflict Detection',
-      'duration': 'Duration Validation'
+      'duration': 'Duration Validation',
+      'custom': 'Custom Rules'
     };
     return names[category] || category;
   }
@@ -673,7 +674,8 @@ export class RulesSettingsComponent {
       'workload': '📊',
       'breaks': '☕',
       'conflicts': '⚠️',
-      'duration': '⏱️'
+      'duration': '⏱️',
+      'custom': '⚙️'
     };
     return icons[category] || '⚙️';
   }

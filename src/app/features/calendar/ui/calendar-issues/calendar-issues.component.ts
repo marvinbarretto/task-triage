@@ -64,11 +64,11 @@ import { DEFAULT_RULES } from '../../../../shared/data-access/config/default-con
                 {{violation.message}}
               </div>
               
-              @if (violation.eventTitles.length > 0) {
+              @if (violation.itemTitles.length > 0) {
                 <div class="affected-events">
                   <span class="affected-label">Affected:</span>
                   <span class="event-names">
-                    {{violation.eventTitles.join(', ')}}
+                    {{violation.itemTitles.join(', ')}}
                   </span>
                 </div>
               }
