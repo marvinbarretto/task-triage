@@ -20,6 +20,8 @@ npm run lib:release      # Release new version (uses standard-version)
 npm run lib:publish      # Publish to npm
 ```
 
+**IMPORTANT**: When making updates to the library, always update the API reference at `projects/angular-foundation/API.md` to reflect new components, services, methods, or changed interfaces. This documentation is consumed by LLMs and must stay current.
+
 ## Architecture Overview
 
 This is an Angular 20 workspace containing:
