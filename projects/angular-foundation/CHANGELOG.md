@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.9](https://github.com/marvinbarretto/task-triage/compare/v0.1.8...v0.1.9) (2025-07-27)
+
+
+### Bug Fixes
+
+* Resolve build issues ([bdca073](https://github.com/marvinbarretto/task-triage/commit/bdca073c09e9b91073f5ffe8e6bd2ed2a2d951da))
+
 ### [0.1.8](https://github.com/marvinbarretto/task-triage/compare/v0.1.7...v0.1.8) (2025-07-25)
 
 ### [0.1.7](https://github.com/marvinbarretto/task-triage/compare/v0.1.6...v0.1.7) (2025-07-23)
