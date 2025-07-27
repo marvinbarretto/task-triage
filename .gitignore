@@ -43,3 +43,7 @@ Thumbs.db
 .vscode/settings.json
 src/environments/environment.ts
 src/environments/environment.prod.ts
+projects/angular-foundation/MODERN_IMPLEMENTATION_GUIDE.md
+projects/angular-foundation/ENTERPRISE_GUIDE.md
+.claude/settings.local.json
+projects/angular-foundation/html/

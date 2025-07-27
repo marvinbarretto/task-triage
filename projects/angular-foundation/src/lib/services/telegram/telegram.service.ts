@@ -2,6 +2,7 @@ import { Injectable, inject, InjectionToken } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { SsrPlatformService } from '../ssr';
+import { TelegramUtils } from './telegram-utils';
 
 /**
  * Default Telegram configuration
@@ -71,6 +72,26 @@ export interface TelegramMessageOptions {
   disableWebPagePreview?: boolean;
   disableNotification?: boolean;
   replyToMessageId?: number;
+}
+
+/**
+ * Template message options for formatted messaging
+ */
+export interface TelegramTemplateOptions extends TelegramMessageOptions {
+  variables?: Record<string, any>;
+  escapeVariables?: boolean;
+}
+
+/**
+ * Raw message options for low-level API access
+ */
+export interface TelegramRawMessageOptions {
+  parseMode?: TelegramParseMode;
+  disableWebPagePreview?: boolean;
+  disableNotification?: boolean;
+  replyToMessageId?: number;
+  protectContent?: boolean;
+  allowSendingWithoutReply?: boolean;
 }
 
 /**
@@ -193,7 +214,31 @@ export class TelegramNotificationService {
   }
 
   /**
-   * Send a raw message to Telegram
+   * Send a message to Telegram with full formatting options.
+   * 
+   * This is the primary mid-level API method for sending messages with
+   * configurable options while maintaining safety and error handling.
+   * 
+   * @param text - The message text to send
+   * @param options - Message configuration options
+   * @returns Promise resolving to Telegram API response
+   * 
+   * @example
+   * ```typescript
+   * // Simple message
+   * await service.sendMessage('Hello world!');
+   * 
+   * // Message with custom formatting
+   * await service.sendMessage('*Bold* and _italic_ text', {
+   *   parseMode: 'Markdown',
+   *   disableWebPagePreview: true
+   * });
+   * 
+   * // Message to different chat
+   * await service.sendMessage('Team notification', {
+   *   chatId: 'TEAM_CHAT_ID'
+   * });
+   * ```
    */
   async sendMessage(text: string, options: TelegramMessageOptions = {}): Promise<TelegramResponse> {
     if (!this.isConfigured()) {
@@ -297,7 +342,245 @@ export class TelegramNotificationService {
     }
   }
 
-  // Private methods
+  /**
+   * Send a formatted message using template variables.
+   * 
+   * This mid-level API method allows sending messages with variable substitution
+   * and automatic escaping for safe content display.
+   * 
+   * @param template - Message template with {{variable}} placeholders
+   * @param options - Template and message options
+   * @returns Promise resolving to Telegram API response
+   * 
+   * @example
+   * ```typescript
+   * await service.sendFormattedMessage(
+   *   'Hello {{name}}! Your order {{orderId}} is {{status}}.',
+   *   {
+   *     variables: { name: 'John', orderId: '12345', status: 'ready' },
+   *     escapeVariables: true,
+   *     parseMode: 'Markdown'
+   *   }
+   * );
+   * ```
+   */
+  async sendFormattedMessage(template: string, options: TelegramTemplateOptions = {}): Promise<TelegramResponse> {
+    const { variables = {}, escapeVariables = true, ...messageOptions } = options;
+    
+    let message = template;
+    
+    // Replace template variables
+    Object.entries(variables).forEach(([key, value]) => {
+      const placeholder = `{{${key}}}`;
+      let replacement = String(value);
+      
+      // Apply escaping based on parse mode and escapeVariables setting
+      if (escapeVariables) {
+        const parseMode = messageOptions.parseMode || this.config.parseMode;
+        if (parseMode === 'HTML') {
+          replacement = this.escapeHtml(replacement);
+        } else if (parseMode === 'Markdown' || parseMode === 'MarkdownV2') {
+          replacement = this.escapeMarkdown(replacement);
+        }
+      }
+      
+      message = message.replace(new RegExp(placeholder, 'g'), replacement);
+    });
+    
+    return this.sendMessage(message, messageOptions);
+  }
+
+  /**
+   * Send a raw message directly to a specific chat with minimal processing.
+   * 
+   * This low-level API method provides direct access to the Telegram Bot API
+   * with minimal abstraction, suitable for advanced use cases.
+   * 
+   * @param chatId - Target chat ID
+   * @param text - Raw message text
+   * @param options - Raw message options
+   * @returns Promise resolving to Telegram API response
+   * 
+   * @example
+   * ```typescript
+   * // Direct message to specific chat
+   * await service.sendRawMessage(
+   *   '-1001234567890',
+   *   '<b>Important:</b> System maintenance in 5 minutes',
+   *   { parseMode: 'HTML', disableNotification: true }
+   * );
+   * ```
+   */
+  async sendRawMessage(chatId: string, text: string, options: TelegramRawMessageOptions = {}): Promise<TelegramResponse> {
+    if (!this.config.botToken) {
+      throw new Error('Bot token not configured');
+    }
+
+    const url = `${this.config.apiBaseUrl}${this.config.botToken}/sendMessage`;
+
+    const payload = {
+      chat_id: chatId,
+      text,
+      parse_mode: options.parseMode,
+      disable_web_page_preview: options.disableWebPagePreview,
+      disable_notification: options.disableNotification,
+      reply_to_message_id: options.replyToMessageId,
+      protect_content: options.protectContent,
+      allow_sending_without_reply: options.allowSendingWithoutReply
+    };
+
+    // Remove undefined values
+    Object.keys(payload).forEach(key => {
+      if (payload[key as keyof typeof payload] === undefined) {
+        delete payload[key as keyof typeof payload];
+      }
+    });
+
+    console.log('[TelegramNotificationService] 📤 Sending raw message to chat:', chatId);
+
+    if (this.config.enableRetries) {
+      return this._sendWithRetry(url, payload);
+    } else {
+      return firstValueFrom(this.http.post<TelegramResponse>(url, payload));
+    }
+  }
+
+  // ===================================
+  // 🛠️ PUBLIC UTILITY METHODS
+  // ===================================
+  
+  /**
+   * Escape special Markdown characters for safe message formatting.
+   * 
+   * @param text - Text to escape
+   * @returns Markdown-escaped text
+   * 
+   * @example
+   * ```typescript
+   * const userInput = 'User *input* with [special] chars';
+   * const safe = service.escapeMarkdown(userInput);
+   * ```
+   */
+  escapeMarkdown(text: string): string {
+    return TelegramUtils.escapeMarkdown(text);
+  }
+
+  /**
+   * Escape special HTML characters for safe HTML formatting.
+   * 
+   * @param text - Text to escape
+   * @returns HTML-escaped text
+   * 
+   * @example
+   * ```typescript
+   * const userInput = 'User <script>alert("xss")</script>';
+   * const safe = service.escapeHtml(userInput);
+   * ```
+   */
+  escapeHtml(text: string): string {
+    return TelegramUtils.escapeHtml(text);
+  }
+
+  /**
+   * Parse user agent string into readable device/browser information.
+   * 
+   * @param userAgent - User agent string
+   * @returns Readable device description
+   * 
+   * @example
+   * ```typescript
+   * const deviceInfo = service.parseUserAgent(navigator.userAgent);
+   * // Result: "Chrome Browser"
+   * ```
+   */
+  parseUserAgent(userAgent: string): string {
+    return TelegramUtils.parseUserAgent(userAgent);
+  }
+
+  /**
+   * Extract path component from URL for cleaner message display.
+   * 
+   * @param url - Full URL
+   * @returns URL path + query + hash
+   * 
+   * @example
+   * ```typescript
+   * const path = service.extractPath('https://example.com/api/users?page=1');
+   * // Result: "/api/users?page=1"
+   * ```
+   */
+  extractPath(url: string): string {
+    return TelegramUtils.extractPath(url);
+  }
+
+  /**
+   * Format timestamp into localized string.
+   * 
+   * @param date - Date to format
+   * @param locale - Optional locale
+   * @param options - Optional formatting options
+   * @returns Formatted timestamp
+   * 
+   * @example
+   * ```typescript
+   * const formatted = service.formatTimestamp(new Date());
+   * ```
+   */
+  formatTimestamp(date: Date, locale?: string, options?: Intl.DateTimeFormatOptions): string {
+    return TelegramUtils.formatTimestamp(date, locale, options);
+  }
+
+  /**
+   * Format metadata object into readable string.
+   * 
+   * @param metadata - Metadata object
+   * @returns Formatted metadata string
+   * 
+   * @example
+   * ```typescript
+   * const meta = service.formatMetadata({ userId: '123', plan: 'premium' });
+   * // Result: "user id: 123, plan: premium"
+   * ```
+   */
+  formatMetadata(metadata: Record<string, any>): string {
+    return TelegramUtils.formatMetadata(metadata);
+  }
+
+  /**
+   * Get appropriate emoji for notification type.
+   * 
+   * @param type - Notification type
+   * @returns Corresponding emoji
+   * 
+   * @example
+   * ```typescript
+   * const emoji = service.getTypeEmoji('error'); // "❌"
+   * ```
+   */
+  getTypeEmoji(type?: string): string {
+    return TelegramUtils.getTypeEmoji(type);
+  }
+
+  /**
+   * Truncate text to specified length with ellipsis.
+   * 
+   * @param text - Text to truncate
+   * @param maxLength - Maximum length (default: 4096)
+   * @param preserveWords - Preserve word boundaries (default: true)
+   * @returns Truncated text
+   * 
+   * @example
+   * ```typescript
+   * const short = service.truncateText(longMessage, 100);
+   * ```
+   */
+  truncateText(text: string, maxLength?: number, preserveWords?: boolean): string {
+    return TelegramUtils.truncateText(text, maxLength, preserveWords);
+  }
+
+  // ===================================
+  // 🔒 PRIVATE IMPLEMENTATION METHODS
+  // ===================================
 
   private _formatNotificationMessage(notification: TelegramNotification): string {
     const typeEmoji = this._getTypeEmoji(notification.type);
@@ -352,22 +635,7 @@ export class TelegramNotificationService {
   }
 
   private _getTypeEmoji(type?: string): string {
-    const typeEmojis: Record<string, string> = {
-      info: 'ℹ️',
-      success: '✅',
-      warning: '⚠️',
-      error: '❌',
-      bug: '🐛',
-      suggestion: '💡',
-      confusion: '❓',
-      security: '🛡️',
-      performance: '⚡',
-      feature: '🚀',
-      user: '👤',
-      system: '⚙️'
-    };
-
-    return typeEmojis[type || 'info'] || '📝';
+    return this.getTypeEmoji(type);
   }
 
   private _getDefaultTitle(type?: string): string {
@@ -390,45 +658,19 @@ export class TelegramNotificationService {
   }
 
   private _escapeMarkdown(text: string): string {
-    // Escape special Markdown characters
-    return text.replace(/[*_`\[\]()~>#+=|{}.!-]/g, '\\$&');
+    return this.escapeMarkdown(text);
   }
 
   private _extractPath(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.pathname + urlObj.search + urlObj.hash;
-    } catch {
-      return url;
-    }
+    return this.extractPath(url);
   }
 
   private _formatMetadata(metadata: Record<string, any>): string {
-    try {
-      const entries = Object.entries(metadata)
-        .filter(([_, value]) => value !== null && value !== undefined)
-        .map(([key, value]) => {
-          const formattedKey = key.replace(/([A-Z])/g, ' $1').toLowerCase();
-          const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-          return `${formattedKey}: ${formattedValue}`;
-        });
-
-      return entries.join(', ');
-    } catch {
-      return 'Invalid metadata';
-    }
+    return this.formatMetadata(metadata);
   }
 
   private _parseUserAgent(userAgent: string): string {
-    // Simple user agent parsing for better readability
-    if (userAgent.includes('Chrome')) {
-      if (userAgent.includes('Edg/')) return 'Edge Browser';
-      return 'Chrome Browser';
-    }
-    if (userAgent.includes('Firefox')) return 'Firefox Browser';
-    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari Browser';
-    if (userAgent.includes('Mobile')) return 'Mobile Browser';
-    return 'Unknown Browser';
+    return this.parseUserAgent(userAgent);
   }
 
   private async _sendWithRetry(url: string, payload: any): Promise<TelegramResponse> {

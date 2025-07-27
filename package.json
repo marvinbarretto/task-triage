@@ -7,7 +7,11 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:vitest": "cd projects/angular-foundation && vitest run",
+    "test:vitest:watch": "cd projects/angular-foundation && vitest",
+    "test:vitest:ui": "cd projects/angular-foundation && vitest --ui",
     "lib:test": "ng test angular-foundation",
+    "lib:test:vitest": "npm run test:vitest",
     "lib:build": "ng build angular-foundation",
     "lib:release": "npm run lib:build && cd projects/angular-foundation && standard-version",
     "lib:publish": "cd dist/angular-foundation && npm publish"
@@ -50,7 +54,9 @@
     "@angular/cli": "^20.1.1",
     "@angular/compiler-cli": "^20.1.0",
     "@types/jasmine": "~5.1.0",
+    "@vitest/ui": "3.2.4",
     "jasmine-core": "~5.8.0",
+    "jsdom": "26.1.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
@@ -58,6 +64,7 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "ng-packagr": "^20.1.0",
     "standard-version": "9.5.0",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "vitest": "3.2.4"
   }
 }
