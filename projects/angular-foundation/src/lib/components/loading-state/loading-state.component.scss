@@ -1,0 +1,158 @@
+// Unstyled loading state component - Structure and CSS custom properties only
+
+.ff-loading {
+  // Essential layout structure
+  display: flex;
+  align-items: center;
+  justify-content: var(--loading-align, center);
+  gap: var(--loading-gap, 0.75rem);
+  
+  // Customizable via CSS custom properties
+  padding: var(--loading-padding, 1rem);
+  text-align: var(--loading-text-align, center);
+
+  // Size variants - all customizable
+  &[data-size="xs"] {
+    gap: var(--loading-xs-gap, 0.5rem);
+    padding: var(--loading-xs-padding, 0.5rem);
+    
+    .ff-loading__spinner {
+      width: var(--loading-xs-spinner-size, 1rem);
+      height: var(--loading-xs-spinner-size, 1rem);
+      border-width: var(--loading-xs-spinner-width, 1.5px);
+    }
+    
+    .ff-loading__text {
+      font-size: var(--loading-xs-text-size, 0.75rem);
+    }
+  }
+
+  &[data-size="sm"] {
+    gap: var(--loading-sm-gap, 0.625rem);
+    padding: var(--loading-sm-padding, 0.75rem);
+    
+    .ff-loading__spinner {
+      width: var(--loading-sm-spinner-size, 1.25rem);
+      height: var(--loading-sm-spinner-size, 1.25rem);
+      border-width: var(--loading-sm-spinner-width, 2px);
+    }
+    
+    .ff-loading__text {
+      font-size: var(--loading-sm-text-size, 0.875rem);
+    }
+  }
+
+  &[data-size="md"] {
+    gap: var(--loading-md-gap, 0.75rem);
+    padding: var(--loading-md-padding, 1rem);
+    
+    .ff-loading__spinner {
+      width: var(--loading-md-spinner-size, 1.5rem);
+      height: var(--loading-md-spinner-size, 1.5rem);
+      border-width: var(--loading-md-spinner-width, 2px);
+    }
+    
+    .ff-loading__text {
+      font-size: var(--loading-md-text-size, 1rem);
+    }
+  }
+
+  &[data-size="lg"] {
+    gap: var(--loading-lg-gap, 1rem);
+    padding: var(--loading-lg-padding, 1.5rem);
+    
+    .ff-loading__spinner {
+      width: var(--loading-lg-spinner-size, 2rem);
+      height: var(--loading-lg-spinner-size, 2rem);
+      border-width: var(--loading-lg-spinner-width, 3px);
+    }
+    
+    .ff-loading__text {
+      font-size: var(--loading-lg-text-size, 1.125rem);
+    }
+  }
+
+  &[data-size="xl"] {
+    gap: var(--loading-xl-gap, 1.25rem);
+    padding: var(--loading-xl-padding, 2rem);
+    
+    .ff-loading__spinner {
+      width: var(--loading-xl-spinner-size, 2.5rem);
+      height: var(--loading-xl-spinner-size, 2.5rem);
+      border-width: var(--loading-xl-spinner-width, 3px);
+    }
+    
+    .ff-loading__text {
+      font-size: var(--loading-xl-text-size, 1.25rem);
+    }
+  }
+
+  &__spinner {
+    // Default spinner size (overridden by size variants)
+    width: var(--loading-spinner-size, 1.5rem);
+    height: var(--loading-spinner-size, 1.5rem);
+    
+    // Spinner styling - customizable
+    border: var(--loading-spinner-width, 2px) solid var(--loading-spinner-color, currentColor);
+    border-top-color: var(--loading-spinner-top-color, transparent);
+    border-radius: 50%;
+    
+    // Animation
+    animation: ff-loading-spin var(--loading-spinner-duration, 1s) linear infinite;
+    
+    // Ensure it doesn't shrink
+    flex-shrink: 0;
+  }
+
+  &__text {
+    // Text styling - customizable
+    font-size: var(--loading-text-size, 1rem);
+    font-weight: var(--loading-text-weight, 400);
+    color: var(--loading-text-color, inherit);
+    line-height: var(--loading-text-line-height, 1.5);
+    
+    // Ensure proper text wrapping
+    word-wrap: break-word;
+    hyphens: auto;
+  }
+}
+
+// Spinner animation
+@keyframes ff-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Utility classes for common layouts
+.ff-loading--vertical {
+  flex-direction: column;
+  --loading-align: center;
+  --loading-text-align: center;
+}
+
+.ff-loading--inline {
+  display: inline-flex;
+  --loading-padding: 0;
+}
+
+.ff-loading--overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--loading-overlay-background, rgba(255, 255, 255, 0.8));
+  backdrop-filter: var(--loading-overlay-backdrop, blur(2px));
+  z-index: var(--loading-overlay-z-index, 10);
+}
+
+.ff-loading--fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--loading-fullscreen-background, rgba(255, 255, 255, 0.95));
+  z-index: var(--loading-fullscreen-z-index, 1000);
+}

@@ -1,0 +1,246 @@
+// Unstyled tooltip component - Structure and CSS custom properties only
+
+.ff-tooltip {
+  // Essential layout structure
+  position: relative;
+  display: inline-block;
+
+  &__trigger {
+    // Trigger wrapper - inherit display properties
+    display: inherit;
+    width: inherit;
+    height: inherit;
+  }
+
+  &__content {
+    // Essential positioning and visibility
+    position: absolute;
+    z-index: var(--tooltip-z-index, 1000);
+    
+    // Hide by default
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    
+    // Basic structure
+    padding: var(--tooltip-padding, 0.5rem 0.75rem);
+    border-radius: var(--tooltip-border-radius, 0.375rem);
+    
+    // Typography - customizable
+    font-size: var(--tooltip-font-size, 0.875rem);
+    font-weight: var(--tooltip-font-weight, 500);
+    line-height: var(--tooltip-line-height, 1.2);
+    text-align: var(--tooltip-text-align, center);
+    white-space: var(--tooltip-white-space, nowrap);
+    
+    // Visual styling - completely customizable
+    background-color: var(--tooltip-background, #374151);
+    color: var(--tooltip-color, white);
+    border: var(--tooltip-border, none);
+    box-shadow: var(--tooltip-shadow, 0 4px 12px rgba(0, 0, 0, 0.15));
+    
+    // Sizing constraints
+    min-width: var(--tooltip-min-width, auto);
+    max-width: var(--tooltip-max-width, 200px);
+    
+    // Smooth transitions
+    transition: var(--tooltip-transition, opacity 0.2s ease, visibility 0.2s ease);
+    
+    // Ensure proper text wrapping for longer content
+    word-wrap: break-word;
+    hyphens: auto;
+  }
+
+  &__arrow {
+    // Arrow positioning and structure
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: var(--tooltip-arrow-size, 5px) solid transparent;
+  }
+
+  // Size variants
+  &[data-size="xs"] {
+    .ff-tooltip__content {
+      padding: var(--tooltip-xs-padding, 0.25rem 0.5rem);
+      font-size: var(--tooltip-xs-font-size, 0.75rem);
+      max-width: var(--tooltip-xs-max-width, 120px);
+    }
+    
+    .ff-tooltip__arrow {
+      border-width: var(--tooltip-xs-arrow-size, 4px);
+    }
+  }
+
+  &[data-size="sm"] {
+    .ff-tooltip__content {
+      padding: var(--tooltip-sm-padding, 0.375rem 0.625rem);
+      font-size: var(--tooltip-sm-font-size, 0.8125rem);
+      max-width: var(--tooltip-sm-max-width, 160px);
+    }
+    
+    .ff-tooltip__arrow {
+      border-width: var(--tooltip-sm-arrow-size, 4px);
+    }
+  }
+
+  &[data-size="md"] {
+    .ff-tooltip__content {
+      padding: var(--tooltip-md-padding, 0.5rem 0.75rem);
+      font-size: var(--tooltip-md-font-size, 0.875rem);
+      max-width: var(--tooltip-md-max-width, 200px);
+    }
+    
+    .ff-tooltip__arrow {
+      border-width: var(--tooltip-md-arrow-size, 5px);
+    }
+  }
+
+  &[data-size="lg"] {
+    .ff-tooltip__content {
+      padding: var(--tooltip-lg-padding, 0.75rem 1rem);
+      font-size: var(--tooltip-lg-font-size, 1rem);
+      max-width: var(--tooltip-lg-max-width, 300px);
+      white-space: var(--tooltip-lg-white-space, normal);
+    }
+    
+    .ff-tooltip__arrow {
+      border-width: var(--tooltip-lg-arrow-size, 6px);
+    }
+  }
+
+  // Placement variants
+  &[data-placement="top"] {
+    .ff-tooltip__content {
+      bottom: calc(100% + var(--tooltip-offset, 8px));
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    
+    .ff-tooltip__arrow {
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-top-color: var(--tooltip-arrow-color, var(--tooltip-background, #374151));
+      border-bottom: none;
+    }
+  }
+
+  &[data-placement="bottom"] {
+    .ff-tooltip__content {
+      top: calc(100% + var(--tooltip-offset, 8px));
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    
+    .ff-tooltip__arrow {
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-bottom-color: var(--tooltip-arrow-color, var(--tooltip-background, #374151));
+      border-top: none;
+    }
+  }
+
+  &[data-placement="left"] {
+    .ff-tooltip__content {
+      right: calc(100% + var(--tooltip-offset, 8px));
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    .ff-tooltip__arrow {
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      border-left-color: var(--tooltip-arrow-color, var(--tooltip-background, #374151));
+      border-right: none;
+    }
+  }
+
+  &[data-placement="right"] {
+    .ff-tooltip__content {
+      left: calc(100% + var(--tooltip-offset, 8px));
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    .ff-tooltip__arrow {
+      right: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      border-right-color: var(--tooltip-arrow-color, var(--tooltip-background, #374151));
+      border-left: none;
+    }
+  }
+
+  // Show tooltip on hover/focus
+  &:hover,
+  &:focus-within {
+    .ff-tooltip__content {
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+}
+
+// Utility classes for common behaviors
+.ff-tooltip--no-arrow {
+  .ff-tooltip__arrow {
+    display: none;
+  }
+}
+
+.ff-tooltip--multiline {
+  .ff-tooltip__content {
+    white-space: normal;
+    text-align: left;
+    max-width: var(--tooltip-multiline-max-width, 250px);
+  }
+}
+
+.ff-tooltip--delay {
+  .ff-tooltip__content {
+    transition-delay: var(--tooltip-delay, 0.5s);
+  }
+}
+
+.ff-tooltip--instant {
+  .ff-tooltip__content {
+    transition: none;
+  }
+}
+
+// Responsive considerations
+@media (max-width: 768px) {
+  .ff-tooltip {
+    .ff-tooltip__content {
+      font-size: var(--tooltip-mobile-font-size, 0.8rem);
+      padding: var(--tooltip-mobile-padding, 0.4rem 0.6rem);
+      max-width: var(--tooltip-mobile-max-width, 150px);
+    }
+    
+    .ff-tooltip__arrow {
+      border-width: var(--tooltip-mobile-arrow-size, 4px);
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .ff-tooltip {
+    .ff-tooltip__content {
+      border: var(--tooltip-high-contrast-border, 1px solid);
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .ff-tooltip {
+    .ff-tooltip__content {
+      transition: none;
+    }
+  }
+}

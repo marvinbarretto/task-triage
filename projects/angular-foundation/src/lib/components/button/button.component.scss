@@ -1,0 +1,205 @@
+// Unstyled button component - Structure and CSS custom properties only
+// No opinionated colors, shadows, or decorative styles
+
+.ff-btn {
+  // Reset browser defaults
+  font-family: inherit;
+  border: var(--btn-border, none);
+  cursor: pointer;
+  text-decoration: none;
+  
+  // Essential layout structure
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--btn-gap, 0.5rem);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  
+  // Customizable via CSS custom properties
+  padding: var(--btn-padding, 0.5rem 1rem);
+  font-size: var(--btn-font-size, 1rem);
+  font-weight: var(--btn-font-weight, 500);
+  border-radius: var(--btn-border-radius, 0.25rem);
+  background-color: var(--btn-background, transparent);
+  color: var(--btn-color, inherit);
+  min-height: var(--btn-min-height, auto);
+  transition: var(--btn-transition, all 0.2s ease);
+
+  // Focus state - accessibility essential
+  &:focus-visible {
+    outline: var(--btn-focus-outline, 2px solid currentColor);
+    outline-offset: var(--btn-focus-outline-offset, 2px);
+  }
+
+  // Disabled state
+  &:disabled,
+  &.disabled {
+    opacity: var(--btn-disabled-opacity, 0.6);
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  // Loading state
+  &.is-loading {
+    cursor: wait;
+    pointer-events: none;
+  }
+
+  // Full width
+  &.full-width {
+    width: 100%;
+  }
+
+  // Icon-only styling
+  &.icon-only {
+    aspect-ratio: var(--btn-icon-only-aspect-ratio, 1);
+    padding: var(--btn-icon-only-padding, 0.5rem);
+  }
+
+  // Size variants - all customizable via CSS custom properties
+  &[data-size="xs"] {
+    padding: var(--btn-xs-padding, 0.25rem 0.5rem);
+    font-size: var(--btn-xs-font-size, 0.75rem);
+    min-height: var(--btn-xs-min-height, 1.5rem);
+    
+    &.icon-only {
+      padding: var(--btn-xs-icon-padding, 0.25rem);
+    }
+  }
+
+  &[data-size="sm"] {
+    padding: var(--btn-sm-padding, 0.375rem 0.75rem);
+    font-size: var(--btn-sm-font-size, 0.875rem);
+    min-height: var(--btn-sm-min-height, 2rem);
+    
+    &.icon-only {
+      padding: var(--btn-sm-icon-padding, 0.375rem);
+    }
+  }
+
+  &[data-size="md"] {
+    padding: var(--btn-md-padding, 0.5rem 1rem);
+    font-size: var(--btn-md-font-size, 1rem);
+    min-height: var(--btn-md-min-height, 2.5rem);
+    
+    &.icon-only {
+      padding: var(--btn-md-icon-padding, 0.5rem);
+    }
+  }
+
+  &[data-size="lg"] {
+    padding: var(--btn-lg-padding, 0.75rem 1.5rem);
+    font-size: var(--btn-lg-font-size, 1.125rem);
+    min-height: var(--btn-lg-min-height, 3rem);
+    
+    &.icon-only {
+      padding: var(--btn-lg-icon-padding, 0.75rem);
+    }
+  }
+
+  &[data-size="xl"] {
+    padding: var(--btn-xl-padding, 1rem 2rem);
+    font-size: var(--btn-xl-font-size, 1.25rem);
+    min-height: var(--btn-xl-min-height, 3.5rem);
+    
+    &.icon-only {
+      padding: var(--btn-xl-icon-padding, 1rem);
+    }
+  }
+
+  // Button elements - minimal structure
+  &__text {
+    line-height: var(--btn-text-line-height, 1);
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--btn-icon-size, 1.2em);
+    line-height: 1;
+    
+    // Icon positioning adjustments
+    &--left {
+      margin-right: var(--btn-icon-left-margin, -0.25rem);
+    }
+    
+    &--right {
+      margin-left: var(--btn-icon-right-margin, -0.25rem);
+    }
+  }
+
+  &__badge {
+    background-color: var(--btn-badge-background, currentColor);
+    color: var(--btn-badge-color, var(--btn-background, white));
+    font-size: var(--btn-badge-font-size, 0.75em);
+    font-weight: var(--btn-badge-font-weight, 600);
+    padding: var(--btn-badge-padding, 0.125rem 0.375rem);
+    border-radius: var(--btn-badge-border-radius, 999px);
+    min-width: var(--btn-badge-min-width, 1.25rem);
+    height: var(--btn-badge-height, 1.25rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  &__spinner {
+    width: var(--btn-spinner-size, 1em);
+    height: var(--btn-spinner-size, 1em);
+    border: var(--btn-spinner-border-width, 2px) solid var(--btn-spinner-color, currentColor);
+    border-top-color: var(--btn-spinner-top-color, transparent);
+    border-radius: 50%;
+    animation: ff-btn-spin var(--btn-spinner-duration, 1s) linear infinite;
+  }
+
+  // Router link specific
+  &--link {
+    text-decoration: none;
+    
+    &.disabled {
+      pointer-events: none;
+      opacity: var(--btn-disabled-opacity, 0.6);
+    }
+  }
+}
+
+// Spinner animation
+@keyframes ff-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Utility classes for button groups (optional)
+.ff-btn-group {
+  display: flex;
+  gap: var(--btn-group-gap, 0.5rem);
+  
+  &--attached {
+    gap: 0;
+    
+    .ff-btn {
+      border-radius: 0;
+      
+      &:first-child {
+        border-top-left-radius: var(--btn-border-radius, 0.25rem);
+        border-bottom-left-radius: var(--btn-border-radius, 0.25rem);
+      }
+      
+      &:last-child {
+        border-top-right-radius: var(--btn-border-radius, 0.25rem);
+        border-bottom-right-radius: var(--btn-border-radius, 0.25rem);
+      }
+    }
+  }
+}
+
+.ff-btn-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--btn-toolbar-gap, 0.5rem);
+  align-items: center;
+}

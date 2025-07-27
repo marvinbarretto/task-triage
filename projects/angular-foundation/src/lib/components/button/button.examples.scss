@@ -1,0 +1,214 @@
+/**
+ * Example Button Styling
+ * 
+ * This file demonstrates how to style the unstyled ButtonComponent
+ * using CSS custom properties. Copy and modify these examples
+ * to match your design system.
+ */
+
+/* ===== PRIMARY BUTTON EXAMPLE ===== */
+.btn-primary {
+  --btn-background: #3b82f6;
+  --btn-color: white;
+  --btn-border: 1px solid #3b82f6;
+  --btn-padding: 0.75rem 1.5rem;
+  --btn-border-radius: 0.5rem;
+  --btn-font-weight: 600;
+  --btn-transition: all 0.2s ease;
+  
+  /* Hover effect via CSS */
+  &:hover:not(:disabled):not(.disabled) {
+    --btn-background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:active {
+    --btn-background: #1d4ed8;
+    transform: translateY(0);
+  }
+}
+
+/* ===== SECONDARY BUTTON EXAMPLE ===== */
+.btn-secondary {
+  --btn-background: transparent;
+  --btn-color: #374151;
+  --btn-border: 1px solid #d1d5db;
+  --btn-padding: 0.75rem 1.5rem;
+  --btn-border-radius: 0.5rem;
+  
+  &:hover:not(:disabled):not(.disabled) {
+    --btn-background: #f9fafb;
+    --btn-border: 1px solid #9ca3af;
+  }
+}
+
+/* ===== DANGER BUTTON EXAMPLE ===== */
+.btn-danger {
+  --btn-background: #ef4444;
+  --btn-color: white;
+  --btn-border: 1px solid #ef4444;
+  
+  &:hover:not(:disabled):not(.disabled) {
+    --btn-background: #dc2626;
+  }
+}
+
+/* ===== GHOST BUTTON EXAMPLE ===== */
+.btn-ghost {
+  --btn-background: transparent;
+  --btn-color: #6b7280;
+  --btn-border: 1px solid transparent;
+  
+  &:hover:not(:disabled):not(.disabled) {
+    --btn-background: #f3f4f6;
+    --btn-color: #374151;
+  }
+}
+
+/* ===== OUTLINE BUTTON EXAMPLE ===== */
+.btn-outline {
+  --btn-background: transparent;
+  --btn-color: #3b82f6;
+  --btn-border: 1px solid #3b82f6;
+  
+  &:hover:not(:disabled):not(.disabled) {
+    --btn-background: #3b82f6;
+    --btn-color: white;
+  }
+}
+
+/* ===== SIZE VARIATIONS ===== */
+.btn-xs {
+  --btn-padding: 0.25rem 0.5rem;
+  --btn-font-size: 0.75rem;
+  --btn-min-height: 1.5rem;
+}
+
+.btn-sm {
+  --btn-padding: 0.375rem 0.75rem;
+  --btn-font-size: 0.875rem;
+  --btn-min-height: 2rem;
+}
+
+.btn-lg {
+  --btn-padding: 1rem 2rem;
+  --btn-font-size: 1.125rem;
+  --btn-min-height: 3rem;
+}
+
+/* ===== ICON BUTTON EXAMPLES ===== */
+.btn-icon {
+  --btn-icon-only-padding: 0.5rem;
+  --btn-border-radius: 0.375rem;
+  
+  &.btn-sm {
+    --btn-icon-only-padding: 0.375rem;
+  }
+  
+  &.btn-lg {
+    --btn-icon-only-padding: 0.75rem;
+  }
+}
+
+/* ===== LOADING STATE STYLING ===== */
+.btn-loading {
+  --btn-spinner-color: currentColor;
+  --btn-spinner-size: 1rem;
+  --btn-spinner-border-width: 2px;
+}
+
+/* ===== DARK MODE EXAMPLE ===== */
+@media (prefers-color-scheme: dark) {
+  .btn-primary {
+    --btn-background: #3b82f6;
+    --btn-color: white;
+    
+    &:hover:not(:disabled):not(.disabled) {
+      --btn-background: #60a5fa;
+    }
+  }
+  
+  .btn-secondary {
+    --btn-background: transparent;
+    --btn-color: #e5e7eb;
+    --btn-border: 1px solid #4b5563;
+    
+    &:hover:not(:disabled):not(.disabled) {
+      --btn-background: #374151;
+    }
+  }
+}
+
+/* ===== FOCUS STYLING FOR ACCESSIBILITY ===== */
+.btn-accessible {
+  --btn-focus-outline: 2px solid #3b82f6;
+  --btn-focus-outline-offset: 2px;
+  
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    --btn-border: 2px solid currentColor;
+    --btn-focus-outline: 3px solid;
+  }
+}
+
+/* ===== ROUNDED BUTTON VARIATIONS ===== */
+.btn-rounded {
+  --btn-border-radius: 9999px;
+}
+
+.btn-square {
+  --btn-border-radius: 0;
+}
+
+/* ===== CUSTOM BADGE STYLING ===== */
+.btn-with-badge {
+  --btn-badge-background: #ef4444;
+  --btn-badge-color: white;
+  --btn-badge-font-size: 0.75rem;
+  --btn-badge-padding: 0.125rem 0.375rem;
+  --btn-badge-border-radius: 9999px;
+}
+
+/* ===== BUTTON GROUP STYLING ===== */
+.btn-group-example {
+  .ff-btn:not(:last-child) {
+    border-right: none;
+  }
+  
+  .ff-btn:hover {
+    z-index: 1;
+    position: relative;
+  }
+}
+
+/* ===== RESPONSIVE BUTTON EXAMPLE ===== */
+.btn-responsive {
+  --btn-padding: 0.5rem 1rem;
+  --btn-font-size: 0.875rem;
+  
+  @media (min-width: 640px) {
+    --btn-padding: 0.75rem 1.5rem;
+    --btn-font-size: 1rem;
+  }
+}
+
+/* ===== INTEGRATION WITH CSS FRAMEWORKS ===== */
+
+/* Tailwind-like classes */
+.btn-tailwind {
+  --btn-background: theme('colors.blue.500');
+  --btn-color: theme('colors.white');
+  --btn-padding: theme('spacing.3') theme('spacing.6');
+  --btn-border-radius: theme('borderRadius.md');
+}
+
+/* Bootstrap-like classes */
+.btn-bootstrap {
+  --btn-padding: 0.375rem 0.75rem;
+  --btn-font-size: 1rem;
+  --btn-font-weight: 400;
+  --btn-border-radius: 0.25rem;
+  --btn-border: 1px solid transparent;
+  --btn-transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}

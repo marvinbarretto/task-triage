@@ -1,0 +1,193 @@
+// Unstyled chip component - Structure and CSS custom properties only
+
+.ff-chip {
+  // Essential layout structure
+  display: inline-flex;
+  align-items: center;
+  gap: var(--chip-gap, 0.5rem);
+  
+  // Customizable via CSS custom properties
+  padding: var(--chip-padding, 0.5rem 1rem);
+  border-radius: var(--chip-border-radius, 9999px);
+  border: var(--chip-border, 1px solid transparent);
+  
+  // Typography
+  font-size: var(--chip-font-size, 0.875rem);
+  font-weight: var(--chip-font-weight, 500);
+  line-height: var(--chip-line-height, 1.2);
+  
+  // Colors - customizable
+  background-color: var(--chip-background, #f3f4f6);
+  color: var(--chip-color, #374151);
+  
+  // Transitions
+  transition: var(--chip-transition, all 0.15s ease-in-out);
+  
+  // Ensure no shrinking
+  flex-shrink: 0;
+  
+  // Remove text selection for interactive chips
+  user-select: none;
+
+  // Size variants
+  &[data-size="xs"] {
+    padding: var(--chip-xs-padding, 0.25rem 0.5rem);
+    font-size: var(--chip-xs-font-size, 0.75rem);
+    gap: var(--chip-xs-gap, 0.25rem);
+  }
+
+  &[data-size="sm"] {
+    padding: var(--chip-sm-padding, 0.375rem 0.75rem);
+    font-size: var(--chip-sm-font-size, 0.8125rem);
+    gap: var(--chip-sm-gap, 0.375rem);
+  }
+
+  &[data-size="md"] {
+    padding: var(--chip-md-padding, 0.5rem 1rem);
+    font-size: var(--chip-md-font-size, 0.875rem);
+    gap: var(--chip-md-gap, 0.5rem);
+  }
+
+  &[data-size="lg"] {
+    padding: var(--chip-lg-padding, 0.75rem 1.25rem);
+    font-size: var(--chip-lg-font-size, 1rem);
+    gap: var(--chip-lg-gap, 0.625rem);
+  }
+
+  // Variant colors - provide defaults but fully customizable
+  &[data-variant="default"] {
+    --chip-background: #f3f4f6;
+    --chip-color: #374151;
+  }
+
+  &[data-variant="primary"] {
+    --chip-background: #3b82f6;
+    --chip-color: white;
+  }
+
+  &[data-variant="success"] {
+    --chip-background: #10b981;
+    --chip-color: white;
+  }
+
+  &[data-variant="warning"] {
+    --chip-background: #f59e0b;
+    --chip-color: white;
+  }
+
+  &[data-variant="error"] {
+    --chip-background: #ef4444;
+    --chip-color: white;
+  }
+
+  &[data-variant="info"] {
+    --chip-background: #3b82f6;
+    --chip-color: white;
+  }
+
+  // Interactive states
+  &[role="button"] {
+    cursor: pointer;
+    
+    &:hover {
+      background-color: var(--chip-hover-background, var(--chip-background));
+      color: var(--chip-hover-color, var(--chip-color));
+      transform: var(--chip-hover-transform, none);
+      opacity: var(--chip-hover-opacity, 0.9);
+    }
+    
+    &:focus {
+      outline: var(--chip-focus-outline, 2px solid transparent);
+      outline-offset: var(--chip-focus-outline-offset, 2px);
+      box-shadow: var(--chip-focus-shadow, 0 0 0 2px currentColor);
+    }
+    
+    &:active {
+      transform: var(--chip-active-transform, scale(0.98));
+      opacity: var(--chip-active-opacity, 0.8);
+    }
+  }
+
+  // Disabled state
+  &[aria-disabled="true"] {
+    opacity: var(--chip-disabled-opacity, 0.5);
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &__content {
+    // Content wrapper
+    display: flex;
+    align-items: center;
+    gap: inherit;
+    flex: 1;
+    min-width: 0; // Allow text to truncate
+  }
+
+  &__close {
+    // Close button styling
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    // Size and spacing
+    width: var(--chip-close-size, 1.25rem);
+    height: var(--chip-close-size, 1.25rem);
+    padding: 0;
+    margin-left: var(--chip-close-margin, 0.25rem);
+    
+    // Appearance
+    background: var(--chip-close-background, transparent);
+    border: var(--chip-close-border, none);
+    border-radius: var(--chip-close-border-radius, 50%);
+    color: var(--chip-close-color, inherit);
+    
+    // Interactive
+    cursor: pointer;
+    transition: var(--chip-close-transition, all 0.15s ease-in-out);
+    
+    // Remove default button styles
+    font-family: inherit;
+    font-size: inherit;
+    
+    &:hover {
+      background-color: var(--chip-close-hover-background, rgba(0, 0, 0, 0.1));
+      color: var(--chip-close-hover-color, var(--chip-close-color, inherit));
+    }
+    
+    &:focus {
+      outline: var(--chip-close-focus-outline, 2px solid transparent);
+      outline-offset: var(--chip-close-focus-outline-offset, 1px);
+      box-shadow: var(--chip-close-focus-shadow, 0 0 0 1px currentColor);
+    }
+    
+    &:active {
+      transform: var(--chip-close-active-transform, scale(0.9));
+    }
+  }
+
+  &__close-icon {
+    // Close icon styling
+    font-size: var(--chip-close-icon-size, 1rem);
+    font-weight: var(--chip-close-icon-weight, bold);
+    line-height: 1;
+  }
+}
+
+// Utility classes for common layouts
+.ff-chip--outline {
+  background-color: transparent;
+  border-color: var(--chip-color);
+}
+
+.ff-chip--no-padding {
+  --chip-padding: 0;
+}
+
+.ff-chip--rounded {
+  --chip-border-radius: 0.375rem;
+}
+
+.ff-chip--square {
+  --chip-border-radius: 0;
+}

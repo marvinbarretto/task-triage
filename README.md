@@ -55,7 +55,17 @@ npm run lib:test
 
 ## Library (@fourfold/angular-foundation)
 
-This project also develops a shared Angular utilities library published as `@fourfold/angular-foundation`. See `projects/angular-foundation/README.md` for library documentation.
+This project also develops a comprehensive Angular foundation library published as `@fourfold/angular-foundation`. The library provides:
+
+### Core Features
+- **🏗️ Architectural Patterns** - BaseStore, CollectionStore abstractions
+- **📡 Data Services** - HTTP services, Firestore integration, list filtering
+- **🔐 Authentication** - Guards, types, generic auth utilities
+- **🎨 Platform Services** - SSR-safe utilities, theme management
+- **🧩 UI Components** - Unstyled, accessible component library
+- **⚡ HTTP Infrastructure** - Interceptors for auth, loading, error handling, retry logic
+
+See `projects/angular-foundation/README.md` for detailed library documentation.
 
 ## Tech Stack
 
