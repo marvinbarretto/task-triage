@@ -46,8 +46,24 @@ Comprehensive API reference for LLM consumption. Angular 20+ library with standa
 - **Features**: User-scoped caching, TTL expiration, SSR safe, localStorage backend
 
 ### FirestoreService
-- **Methods**: CRUD operations for Firestore with offline support
-- **Features**: Reactive queries, batch operations, real-time updates
+- **Methods**: 
+  - `collection$<T>(path: string): Observable<T[]>` - Cache-first collection fetch with cost tracking
+  - `doc$<T>(path: string): Observable<T|undefined>` - Cache-first document fetch with cost tracking  
+  - `setDoc<T>(path: string, data: T): Promise<void>` - Create/update document
+  - `updateDoc<T>(path: string, data: Partial<T>): Promise<void>` - Merge update document
+  - `deleteDoc(path: string): Promise<void>` - Delete document
+  - `addDocToCollection<T>(path: string, data: T): Promise<DocumentReference<T>>` - Add with auto-ID
+  - `getDocByPath<T>(path: string): Promise<T|undefined>` - Cache-first document fetch
+  - `getDocsWhere<T>(path: string, ...conditions): Promise<(T & {id: string})[]>` - Cache-first query
+  - `getDocsWhereFromServer<T>(path: string, ...conditions): Promise<(T & {id: string})[]>` - Force server fetch
+  - `exists(path: string): Promise<boolean>` - Cache-first existence check
+  - `batchDelete(paths: string[]): Promise<void>` - Efficient batch deletion
+- **Features**: 
+  - **Cost-aware logging**: Clear distinction between free cache hits (💰 $0.00) and paid API calls (💸 FIRESTORE CHARGE)
+  - **Cache-first strategy**: Explicit cache checking before server requests to minimize costs
+  - **Offline support**: IndexedDB caching with automatic sync when online
+  - **Batch operations**: Cost-efficient bulk operations
+  - **Metrics integration**: Tracks cache vs API usage through FirebaseMetricsService
 
 ### FirestoreCrudService
 - **Methods**: Generic CRUD operations with type safety

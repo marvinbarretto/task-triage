@@ -42,76 +42,58 @@ export class FirestoreService {
   }
 
   /**
-   * 📚 COLLECTION FETCH - One-time fetch of all documents in a collection
+   * 📚 COLLECTION FETCH - Cache-first fetch with explicit source tracking
    *
-   * 🔍 WHAT HAPPENS:
-   * 1. Firebase checks IndexedDB cache first
-   * 2. Returns cached data if available (instant response)
-   * 3. Fetches from network in background if needed
-   * 4. Updates cache with fresh data
-   *
-   * 📊 Performance: Cache hits are ~100x faster than network requests!
+   * 🔍 STRATEGY: Try cache first, then server to ensure accurate cost tracking
+   * 💰 COST AWARENESS: Clear logging distinguishes free cache hits from paid API calls
    */
   public collection$<T>(path: string): Observable<T[]> {
-    const startTime = performance.now();
     console.log(`[Firestore] 📚 Collection fetch started: ${path}`);
-
     this.metricsService?.trackCall('read', path, 'collection');
 
     return runInInjectionContext(this.injector, () => {
       const col = collection(this.firestore, path) as CollectionReference<T>;
-      return from(getDocs(col)).pipe(
-        tap(() => {
-          const duration = performance.now() - startTime;
-          console.log(`✅ [Firestore] 📚 Collection "${path}" fetched in ${duration.toFixed(1)}ms`);
-          if (duration < 50) {
-            console.log(`⚡ [Firestore] 🎯 CACHE HIT! Lightning fast response (${duration.toFixed(1)}ms)`);
+      
+      return from(this.tryCollectionFromCache<T>(col, path)).pipe(
+        map(result => {
+          if (result.fromCache) {
+            console.log(`🎯 [Firestore] 💰 CACHE HIT - Collection "${path}" (${result.docs.length} docs) - $0.00 cost`);
+            this.metricsService?.trackCall('read', path, 'collection', 'cache');
+            return result.docs;
           } else {
-            console.log(`🌐 [Firestore] 📡 Network request completed (${duration.toFixed(1)}ms)`);
+            console.log(`💸 [Firestore] 🌐 API CALL - Collection "${path}" (${result.docs.length} docs) - FIRESTORE CHARGE`);
+            this.metricsService?.trackCall('read', path, 'collection', 'firebase');
+            return result.docs;
           }
-        }),
-        map(snapshot => {
-          const docs = snapshot.docs.map(doc => doc.data() as unknown as T);
-          console.log(`📊 [Firestore] 📚 Collection "${path}" returned ${docs.length} documents`);
-          return docs;
         })
       );
     });
   }
 
   /**
-   * 📄 DOCUMENT FETCH - One-time fetch of a single document by full path
+   * 📄 DOCUMENT FETCH - Cache-first fetch with explicit source tracking
    *
-   * 🔍 WHAT HAPPENS:
-   * 1. Firebase checks IndexedDB cache for this specific document
-   * 2. Returns cached version instantly if available
-   * 3. Fetches fresh data from network if cache is stale/missing
-   * 4. Updates cache with latest data
-   *
-   * 💡 TIP: Document fetches are even faster than collections from cache!
+   * 🔍 STRATEGY: Try cache first, then server to ensure accurate cost tracking
+   * 💰 COST AWARENESS: Clear logging distinguishes free cache hits from paid API calls
    */
   public doc$<T>(path: string): Observable<T | undefined> {
-    const startTime = performance.now();
     console.log(`[Firestore] 📄 Document fetch started: ${path}`);
-
     this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'doc');
 
     return runInInjectionContext(this.injector, () => {
       const ref = doc(this.firestore, path) as DocumentReference<T>;
-      return from(getDoc(ref)).pipe(
-        tap(() => {
-          const duration = performance.now() - startTime;
-          console.log(`✅ [Firestore] 📄 Document "${path}" fetched in ${duration.toFixed(1)}ms`);
-          if (duration < 20) {
-            console.log(`⚡ [Firestore] 🎯 CACHE HIT! Ultra-fast document response (${duration.toFixed(1)}ms)`);
+      
+      return from(this.tryDocFromCache<T>(ref, path)).pipe(
+        map(result => {
+          if (result.fromCache) {
+            console.log(`🎯 [Firestore] 💰 CACHE HIT - Document "${path}" ${result.data ? 'found' : 'not found'} - $0.00 cost`);
+            this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'doc', 'cache');
+            return result.data;
           } else {
-            console.log(`🌐 [Firestore] 📡 Network document fetch completed (${duration.toFixed(1)}ms)`);
+            console.log(`💸 [Firestore] 🌐 API CALL - Document "${path}" ${result.data ? 'found' : 'not found'} - FIRESTORE CHARGE`);
+            this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'doc', 'firebase');
+            return result.data;
           }
-        }),
-        map(snapshot => {
-          const data = snapshot.data();
-          console.log(`📊 [Firestore] 📄 Document "${path}" ${data ? 'found' : 'not found'}`);
-          return data;
         })
       );
     });
@@ -201,6 +183,7 @@ export class FirestoreService {
         getDocFromCache(ref)
       );
       if (cacheSnap.exists()) {
+        console.log(`🎯 [Firestore] 💰 CACHE HIT - getDocByPath "${path}" found - $0.00 cost`);
         this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'getDocByPath', 'cache');
         return cacheSnap.data() as T;
       }
@@ -209,6 +192,7 @@ export class FirestoreService {
     }
 
     // Fallback to server
+    console.log(`💸 [Firestore] 🌐 API CALL - getDocByPath "${path}" - FIRESTORE CHARGE`);
     this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'getDocByPath', 'firebase');
     const serverSnap = await runInInjectionContext(this.injector, () =>
       getDocFromServer(ref)
@@ -229,6 +213,7 @@ export class FirestoreService {
         getDocsFromCache(q)
       );
       if (!cacheSnapshot.empty) {
+        console.log(`🎯 [Firestore] 💰 CACHE HIT - getDocsWhere "${path}" (${cacheSnapshot.docs.length} docs) - $0.00 cost`);
         this.metricsService?.trackCall('read', path, 'getDocsWhere', 'cache');
         return this.mapSnapshotWithId<T>(cacheSnapshot);
       }
@@ -237,11 +222,14 @@ export class FirestoreService {
     }
 
     // Fallback to server
+    console.log(`💸 [Firestore] 🌐 API CALL - getDocsWhere "${path}" - FIRESTORE CHARGE`);
     this.metricsService?.trackCall('read', path, 'getDocsWhere', 'firebase');
     const serverSnapshot = await runInInjectionContext(this.injector, () =>
       getDocsFromServer(q)
     );
-    return this.mapSnapshotWithId<T>(serverSnapshot);
+    const result = this.mapSnapshotWithId<T>(serverSnapshot);
+    console.log(`💸 [Firestore] 🌐 API CALL - getDocsWhere "${path}" returned ${result.length} docs`);
+    return result;
   }
 
   /**
@@ -254,12 +242,14 @@ export class FirestoreService {
     const ref = collection(this.firestore, path);
     const q = query(ref, ...conditions);
 
-    console.log(`[Firestore] 🌐 Force fetching from server: ${path}`);
+    console.log(`💸 [Firestore] 🌐 FORCED API CALL - getDocsWhereFromServer "${path}" - FIRESTORE CHARGE`);
     this.metricsService?.trackCall('read', path, 'getDocsWhereFromServer', 'firebase');
     const serverSnapshot = await runInInjectionContext(this.injector, () =>
       getDocsFromServer(q)
     );
-    return this.mapSnapshotWithId<T>(serverSnapshot);
+    const result = this.mapSnapshotWithId<T>(serverSnapshot);
+    console.log(`💸 [Firestore] 🌐 FORCED API CALL - getDocsWhereFromServer "${path}" returned ${result.length} docs`);
+    return result;
   }
 
   public async exists(path: string): Promise<boolean> {
@@ -270,16 +260,66 @@ export class FirestoreService {
       const cacheSnap = await runInInjectionContext(this.injector, () =>
         getDocFromCache(ref)
       );
+      console.log(`🎯 [Firestore] 💰 CACHE HIT - exists "${path}" ${cacheSnap.exists() ? 'exists' : 'not found'} - $0.00 cost`);
       this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'exists', 'cache');
       return cacheSnap.exists();
     } catch (error) {
       // Cache miss - fallback to server
+      console.log(`💸 [Firestore] 🌐 API CALL - exists "${path}" - FIRESTORE CHARGE`);
       this.metricsService?.trackCall('read', this.extractCollectionFromPath(path), 'exists', 'firebase');
       const serverSnap = await runInInjectionContext(this.injector, () =>
         getDocFromServer(ref)
       );
       return serverSnap.exists();
     }
+  }
+
+  /**
+   * Try to fetch collection from cache first, fallback to server
+   */
+  private async tryCollectionFromCache<T>(col: CollectionReference<T>, path: string): Promise<{docs: T[], fromCache: boolean}> {
+    try {
+      const cacheSnapshot = await getDocsFromCache(col);
+      if (!cacheSnapshot.empty) {
+        return {
+          docs: cacheSnapshot.docs.map(doc => doc.data() as unknown as T),
+          fromCache: true
+        };
+      }
+    } catch (error) {
+      // Cache miss - fall through to server
+    }
+
+    // Fallback to server
+    const serverSnapshot = await getDocs(col);
+    return {
+      docs: serverSnapshot.docs.map(doc => doc.data() as unknown as T),
+      fromCache: false
+    };
+  }
+
+  /**
+   * Try to fetch document from cache first, fallback to server
+   */
+  private async tryDocFromCache<T>(ref: DocumentReference<T>, path: string): Promise<{data: T | undefined, fromCache: boolean}> {
+    try {
+      const cacheSnapshot = await getDocFromCache(ref);
+      if (cacheSnapshot.exists()) {
+        return {
+          data: cacheSnapshot.data() as T,
+          fromCache: true
+        };
+      }
+    } catch (error) {
+      // Cache miss - fall through to server
+    }
+
+    // Fallback to server
+    const serverSnapshot = await getDoc(ref);
+    return {
+      data: serverSnapshot.exists() ? (serverSnapshot.data() as T) : undefined,
+      fromCache: false
+    };
   }
 
   /**
